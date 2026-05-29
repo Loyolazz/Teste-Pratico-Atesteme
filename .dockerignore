@@ -1,0 +1,8 @@
+.DS_Store
+.git
+web/node_modules
+web/dist
+backend/target
+mobile/.dart_tool
+mobile/build
+

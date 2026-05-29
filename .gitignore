@@ -1,0 +1,23 @@
+.DS_Store
+
+# Java
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Node
+web/node_modules/
+web/dist/
+web/.env
+
+# Flutter
+mobile/.dart_tool/
+mobile/.packages
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
