@@ -14,6 +14,7 @@ export type Project = {
   id: number;
   name: string;
   description?: string | null;
+  workers: string[];
   createdAt: string;
   taskCount: number;
 };
@@ -35,6 +36,13 @@ export type Task = {
 export type ProjectPayload = {
   name: string;
   description?: string;
+  workers?: string[];
+};
+
+export type AssignableUser = {
+  id: number;
+  name: string;
+  email: string;
 };
 
 export type TaskPayload = {

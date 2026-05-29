@@ -1,4 +1,19 @@
+import { SelectField, type SelectOption } from '../../components/SelectField';
 import type { TaskPriority, TaskStatus } from '../../types/api';
+
+const statusOptions: SelectOption<TaskStatus | 'ALL'>[] = [
+  { value: 'ALL', label: 'Todos os status' },
+  { value: 'PENDENTE', label: 'Pendente' },
+  { value: 'EM_ANDAMENTO', label: 'Em andamento' },
+  { value: 'CONCLUIDA', label: 'Concluída' }
+];
+
+const priorityOptions: SelectOption<TaskPriority | 'ALL'>[] = [
+  { value: 'ALL', label: 'Todas as prioridades' },
+  { value: 'BAIXA', label: 'Baixa' },
+  { value: 'MEDIA', label: 'Média' },
+  { value: 'ALTA', label: 'Alta' }
+];
 
 type TaskFiltersProps = {
   statusFilter: TaskStatus | 'ALL';
@@ -15,23 +30,18 @@ export function TaskFilters({
 }: TaskFiltersProps) {
   return (
     <div className="filters">
-      <select value={statusFilter} onChange={(event) => onStatusChange(event.target.value as TaskStatus | 'ALL')}>
-        <option value="ALL">Todos os status</option>
-        <option value="PENDENTE">Pendente</option>
-        <option value="EM_ANDAMENTO">Em andamento</option>
-        <option value="CONCLUIDA">Concluída</option>
-      </select>
-
-      <select
+      <SelectField
+        label="Status"
+        value={statusFilter}
+        options={statusOptions}
+        onChange={onStatusChange}
+      />
+      <SelectField
+        label="Prioridade"
         value={priorityFilter}
-        onChange={(event) => onPriorityChange(event.target.value as TaskPriority | 'ALL')}
-      >
-        <option value="ALL">Todas as prioridades</option>
-        <option value="BAIXA">Baixa</option>
-        <option value="MEDIA">Média</option>
-        <option value="ALTA">Alta</option>
-      </select>
+        options={priorityOptions}
+        onChange={onPriorityChange}
+      />
     </div>
   );
 }
-

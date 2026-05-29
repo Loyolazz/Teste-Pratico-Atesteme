@@ -39,6 +39,7 @@ export const projectService = {
           id: -Date.now(),
           name: payload.name,
           description: payload.description ?? null,
+          workers: payload.workers ?? [],
           createdAt: new Date().toISOString(),
           taskCount: 0
         };
@@ -72,6 +73,7 @@ export const projectService = {
           id: projectId,
           name: payload.name,
           description: payload.description ?? null,
+          workers: payload.workers ?? cachedProject?.workers ?? [],
           createdAt: cachedProject?.createdAt ?? new Date().toISOString(),
           taskCount: cachedProject?.taskCount ?? 0
         };

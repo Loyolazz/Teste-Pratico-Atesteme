@@ -21,21 +21,33 @@ export type BrandingConfig = {
 };
 
 const apiFallbackPalette: BrandingPalette = {
-  primary: '#DFCCB4',
-  secondary: '#ECDAC3',
-  accent: '#FEDEB8',
-  background: '#FEF5E2',
-  surface: '#F6E8D5',
-  surfaceSoft: '#FEDEB8',
-  border: '#ECDAC3',
-  muted: '#8F7E69',
-  text: '#3A3026'
+  primary: '#008C35',
+  secondary: '#27B46A',
+  accent: '#D9F6E2',
+  background: '#EAF3EE',
+  surface: '#FBFEFC',
+  surfaceSoft: '#EEF8F2',
+  border: '#CADBD1',
+  muted: '#66756D',
+  text: '#17211F'
+};
+
+const darkFallbackPalette: BrandingPalette = {
+  primary: '#4ADE80',
+  secondary: '#22C55E',
+  accent: '#143820',
+  background: '#121714',
+  surface: '#202621',
+  surfaceSoft: '#263228',
+  border: '#2F5740',
+  muted: '#A7B5AC',
+  text: '#EEF7F1'
 };
 
 export const fallbackBranding: BrandingConfig = {
   appName: 'Task Manager',
   light: apiFallbackPalette,
-  dark: apiFallbackPalette,
+  dark: darkFallbackPalette,
   fallback: apiFallbackPalette
 };
 

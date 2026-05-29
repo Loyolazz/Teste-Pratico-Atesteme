@@ -32,6 +32,9 @@ public class Project {
     @Column(length = 500)
     private String description;
 
+    @Column(length = 1600)
+    private String workers;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -45,9 +48,10 @@ public class Project {
     protected Project() {
     }
 
-    public Project(String name, String description, User user) {
+    public Project(String name, String description, String workers, User user) {
         this.name = name;
         this.description = description;
+        this.workers = workers;
         this.user = user;
     }
 
@@ -56,9 +60,10 @@ public class Project {
         createdAt = Instant.now();
     }
 
-    public void update(String name, String description) {
+    public void update(String name, String description, String workers) {
         this.name = name;
         this.description = description;
+        this.workers = workers;
     }
 
     public Long getId() {
@@ -73,6 +78,10 @@ public class Project {
         return description;
     }
 
+    public String getWorkers() {
+        return workers;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -85,4 +94,3 @@ public class Project {
         return tasks;
     }
 }
-

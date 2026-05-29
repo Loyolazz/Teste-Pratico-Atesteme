@@ -14,12 +14,22 @@ class OfflineSyncService {
   Future<void> syncPendingOperations() async {
     var operations = await _localDatabase.getPendingOperations();
     if (operations.isNotEmpty) {
-      AppLogger.info('offline_sync.started', context: {'pendingOperations': operations.length});
+      AppLogger.info('offline_sync.started',
+          context: {'pendingOperations': operations.length});
     }
 
     while (operations.isNotEmpty) {
       final operation = operations.first;
       bool synced;
+      AppLogger.info(
+        'offline_sync.operation.started',
+        context: {
+          'operationId': operation['id'],
+          'operationType': operation['operation_type'],
+          'resourceId': operation['resource_id'],
+          'projectId': operation['project_id'],
+        },
+      );
 
       try {
         synced = await _syncOperation(operation);
@@ -40,8 +50,19 @@ class OfflineSyncService {
         break;
       }
 
+      AppLogger.info(
+        'offline_sync.operation.delete_local.started',
+        context: {'operationId': operation['id']},
+      );
       await _localDatabase.deletePendingOperation(operation['id'] as int);
       operations = await _localDatabase.getPendingOperations();
+      AppLogger.info(
+        'offline_sync.operation.completed',
+        context: {
+          'operationId': operation['id'],
+          'remainingOperations': operations.length,
+        },
+      );
     }
 
     if (operations.isEmpty) {
@@ -57,9 +78,18 @@ class OfflineSyncService {
 
     switch (type) {
       case 'CREATE_PROJECT':
-        final data = await _apiClient.post<Map<String, dynamic>>('/projects', payload!);
+        AppLogger.info('offline_sync.api.create_project.started',
+            context: {'operationId': operation['id']});
+        final data =
+            await _apiClient.post<Map<String, dynamic>>('/projects', payload!);
         final project = ProjectModel.fromJson(data);
         if (resourceId != null && resourceId < 0) {
+          AppLogger.info('offline_sync.project_reference_replace.started',
+              context: {
+                'operationId': operation['id'],
+                'fromProjectId': resourceId,
+                'toProjectId': project.id,
+              });
           await _localDatabase.replaceProjectReferences(
             fromProjectId: resourceId,
             toProjectId: project.id,
@@ -69,15 +99,28 @@ class OfflineSyncService {
         await _localDatabase.upsertProject(project);
         return true;
       case 'UPDATE_PROJECT':
-        await _apiClient.put<Map<String, dynamic>>('/projects/$resourceId', payload!);
+        AppLogger.info('offline_sync.api.update_project.started',
+            context: {'operationId': operation['id'], 'projectId': resourceId});
+        await _apiClient.put<Map<String, dynamic>>(
+            '/projects/$resourceId', payload!);
         return true;
       case 'DELETE_PROJECT':
         if (resourceId != null && resourceId > 0) {
+          AppLogger.info('offline_sync.api.delete_project.started', context: {
+            'operationId': operation['id'],
+            'projectId': resourceId
+          });
           await _apiClient.deleteVoid('/projects/$resourceId');
         }
         return true;
       case 'CREATE_TASK':
-        final data = await _apiClient.post<Map<String, dynamic>>('/projects/$projectId/tasks', payload!);
+        AppLogger.info('offline_sync.api.create_task.started', context: {
+          'operationId': operation['id'],
+          'projectId': projectId,
+          'taskId': resourceId
+        });
+        final data = await _apiClient.post<Map<String, dynamic>>(
+            '/projects/$projectId/tasks', payload!);
         final task = TaskModel.fromJson(data);
         if (resourceId != null && resourceId < 0) {
           await _localDatabase.deleteTask(resourceId);
@@ -85,17 +128,39 @@ class OfflineSyncService {
         await _localDatabase.upsertTask(task);
         return true;
       case 'UPDATE_TASK':
-        await _apiClient.put<Map<String, dynamic>>('/projects/$projectId/tasks/$resourceId', payload!);
+        AppLogger.info('offline_sync.api.update_task.started', context: {
+          'operationId': operation['id'],
+          'projectId': projectId,
+          'taskId': resourceId
+        });
+        await _apiClient.put<Map<String, dynamic>>(
+            '/projects/$projectId/tasks/$resourceId', payload!);
         return true;
       case 'UPDATE_TASK_STATUS':
-        await _apiClient.patch<Map<String, dynamic>>('/projects/$projectId/tasks/$resourceId/status', payload!);
+        AppLogger.info('offline_sync.api.update_task_status.started', context: {
+          'operationId': operation['id'],
+          'projectId': projectId,
+          'taskId': resourceId
+        });
+        await _apiClient.patch<Map<String, dynamic>>(
+            '/projects/$projectId/tasks/$resourceId/status', payload!);
         return true;
       case 'DELETE_TASK':
         if (resourceId != null && resourceId > 0) {
+          AppLogger.info('offline_sync.api.delete_task.started', context: {
+            'operationId': operation['id'],
+            'projectId': projectId,
+            'taskId': resourceId
+          });
           await _apiClient.deleteVoid('/projects/$projectId/tasks/$resourceId');
         }
         return true;
       default:
+        AppLogger.warning('offline_sync.operation.unknown_type_ignored',
+            context: {
+              'operationId': operation['id'],
+              'operationType': type,
+            });
         return true;
     }
   }

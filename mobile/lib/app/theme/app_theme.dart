@@ -102,7 +102,7 @@ ThemeData buildAppTheme(BrandingPalette palette, Brightness brightness) {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     ),
     listTileTheme: ListTileThemeData(
-      tileColor: palette.surface,
+      tileColor: palette.surfaceSoft,
       iconColor: palette.primary,
       textColor: palette.text,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
 class AppException implements Exception {
@@ -60,6 +62,10 @@ class AppFieldError {
 }
 
 String errorMessageFor(Object error, {required String fallback}) {
+  if (error is TimeoutException) {
+    return 'Tempo esgotado ao comunicar com o servidor. Verifique se a API está rodando e tente novamente.';
+  }
+
   if (error is AppException) {
     if (error.fieldErrors.isEmpty) {
       return error.message;

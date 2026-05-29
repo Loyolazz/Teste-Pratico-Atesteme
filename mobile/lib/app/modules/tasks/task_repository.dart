@@ -6,7 +6,8 @@ import '../../shared/storage/local_database.dart';
 import 'task_model.dart';
 
 class TaskRepository {
-  const TaskRepository(this._apiClient, this._localDatabase, this._offlineSyncService);
+  const TaskRepository(
+      this._apiClient, this._localDatabase, this._offlineSyncService);
 
   final ApiClient _apiClient;
   final LocalDatabase _localDatabase;
@@ -14,15 +15,28 @@ class TaskRepository {
 
   Future<List<TaskModel>> list(int projectId) async {
     try {
+      AppLogger.info('task.repository.list.started',
+          context: {'projectId': projectId});
+      AppLogger.info('task.repository.list.sync_pending.started',
+          context: {'projectId': projectId});
       await _offlineSyncService.syncPendingOperations();
-      final data = await _apiClient.get<List<dynamic>>('/projects/$projectId/tasks');
-      final tasks = data
-          .cast<Map<String, dynamic>>()
-          .map(TaskModel.fromJson)
-          .toList();
+      AppLogger.info('task.repository.list.api.started',
+          context: {'projectId': projectId});
+      final data =
+          await _apiClient.get<List<dynamic>>('/projects/$projectId/tasks');
+      final tasks =
+          data.cast<Map<String, dynamic>>().map(TaskModel.fromJson).toList();
+      AppLogger.info('task.repository.list.cache_save.started',
+          context: {'projectId': projectId, 'items': tasks.length});
       await _localDatabase.saveTasks(projectId, tasks);
+      AppLogger.info('task.repository.list.completed',
+          context: {'projectId': projectId, 'items': tasks.length});
       return tasks;
     } catch (error, stackTrace) {
+      AppLogger.warning('task.repository.list.trying_cache',
+          error: error,
+          stackTrace: stackTrace,
+          context: {'projectId': projectId});
       final cachedTasks = await _localDatabase.getTasks(projectId);
       if (isOfflineError(error) && cachedTasks.isNotEmpty) {
         AppLogger.warning(
@@ -49,18 +63,26 @@ class TaskRepository {
     required String title,
     required String description,
     required TaskPriority priority,
+    required TaskStatus status,
   }) async {
     final payload = {
       'title': title,
       'description': description,
       'priority': priority.value,
-      'status': TaskStatus.pendente.value,
+      'status': status.value,
     };
 
     try {
-      final data = await _apiClient.post<Map<String, dynamic>>('/projects/$projectId/tasks', payload);
+      AppLogger.info('task.repository.create.api.started',
+          context: {'projectId': projectId, 'title': title});
+      final data = await _apiClient.post<Map<String, dynamic>>(
+          '/projects/$projectId/tasks', payload);
       final task = TaskModel.fromJson(data);
+      AppLogger.info('task.repository.create.cache_save.started',
+          context: {'projectId': projectId, 'taskId': task.id});
       await _localDatabase.upsertTask(task);
+      AppLogger.info('task.repository.create.completed',
+          context: {'projectId': projectId, 'taskId': task.id});
       return task;
     } catch (error, stackTrace) {
       if (!isOfflineError(error)) {
@@ -84,17 +106,23 @@ class TaskRepository {
         title: title,
         description: description,
         priority: priority,
-        status: TaskStatus.pendente,
+        status: status,
         createdAt: DateTime.now(),
         projectId: projectId,
       );
+      AppLogger.info('task.repository.create.offline_cache_save.started',
+          context: {'projectId': projectId, 'taskId': task.id});
       await _localDatabase.upsertTask(task);
+      AppLogger.info('task.repository.create.queue_add.started',
+          context: {'projectId': projectId, 'taskId': task.id});
       await _localDatabase.addPendingOperation(
         operationType: 'CREATE_TASK',
         payload: payload,
         projectId: projectId,
         resourceId: task.id,
       );
+      AppLogger.info('task.repository.create.offline_completed',
+          context: {'projectId': projectId, 'taskId': task.id});
       return task;
     }
   }
@@ -105,18 +133,26 @@ class TaskRepository {
     required String title,
     required String description,
     required TaskPriority priority,
+    required TaskStatus status,
   }) async {
     final payload = {
       'title': title,
       'description': description,
       'priority': priority.value,
-      'status': task.status.value,
+      'status': status.value,
     };
 
     try {
-      final data = await _apiClient.put<Map<String, dynamic>>('/projects/$projectId/tasks/${task.id}', payload);
+      AppLogger.info('task.repository.update.api.started',
+          context: {'projectId': projectId, 'taskId': task.id});
+      final data = await _apiClient.put<Map<String, dynamic>>(
+          '/projects/$projectId/tasks/${task.id}', payload);
       final updatedTask = TaskModel.fromJson(data);
+      AppLogger.info('task.repository.update.cache_save.started',
+          context: {'projectId': projectId, 'taskId': updatedTask.id});
       await _localDatabase.upsertTask(updatedTask);
+      AppLogger.info('task.repository.update.completed',
+          context: {'projectId': projectId, 'taskId': updatedTask.id});
       return updatedTask;
     } catch (error, stackTrace) {
       if (!isOfflineError(error)) {
@@ -124,7 +160,11 @@ class TaskRepository {
           'task.update.failed',
           error: error,
           stackTrace: stackTrace,
-          context: {'projectId': projectId, 'taskId': task.id, 'taskTitle': title},
+          context: {
+            'projectId': projectId,
+            'taskId': task.id,
+            'taskTitle': title
+          },
         );
         rethrow;
       }
@@ -133,19 +173,27 @@ class TaskRepository {
         'task.update.offline_queued',
         error: error,
         stackTrace: stackTrace,
-        context: {'projectId': projectId, 'taskId': task.id, 'taskTitle': title},
+        context: {
+          'projectId': projectId,
+          'taskId': task.id,
+          'taskTitle': title
+        },
       );
       final updatedTask = TaskModel(
         id: task.id,
         title: title,
         description: description,
         priority: priority,
-        status: task.status,
+        status: status,
         createdAt: task.createdAt,
         projectId: task.projectId,
       );
+      AppLogger.info('task.repository.update.offline_cache_save.started',
+          context: {'projectId': projectId, 'taskId': updatedTask.id});
       await _localDatabase.upsertTask(updatedTask);
       if (task.id < 0) {
+        AppLogger.info('task.repository.update.pending_create_replace.started',
+            context: {'projectId': projectId, 'taskId': task.id});
         await _localDatabase.deletePendingOperationsForResource(task.id);
         await _localDatabase.addPendingOperation(
           operationType: 'CREATE_TASK',
@@ -153,15 +201,21 @@ class TaskRepository {
           projectId: projectId,
           resourceId: task.id,
         );
+        AppLogger.info('task.repository.update.offline_completed',
+            context: {'projectId': projectId, 'taskId': task.id});
         return updatedTask;
       }
 
+      AppLogger.info('task.repository.update.queue_add.started',
+          context: {'projectId': projectId, 'taskId': task.id});
       await _localDatabase.addPendingOperation(
         operationType: 'UPDATE_TASK',
         payload: payload,
         projectId: projectId,
         resourceId: task.id,
       );
+      AppLogger.info('task.repository.update.offline_completed',
+          context: {'projectId': projectId, 'taskId': task.id});
       return updatedTask;
     }
   }
@@ -174,12 +228,18 @@ class TaskRepository {
     final payload = {'status': status.value};
 
     try {
+      AppLogger.info('task.repository.status.api.started',
+          context: {'projectId': projectId, 'taskId': task.id});
       final data = await _apiClient.patch<Map<String, dynamic>>(
         '/projects/$projectId/tasks/${task.id}/status',
         payload,
       );
       final updatedTask = TaskModel.fromJson(data);
+      AppLogger.info('task.repository.status.cache_save.started',
+          context: {'projectId': projectId, 'taskId': updatedTask.id});
       await _localDatabase.upsertTask(updatedTask);
+      AppLogger.info('task.repository.status.completed',
+          context: {'projectId': projectId, 'taskId': updatedTask.id});
       return updatedTask;
     } catch (error, stackTrace) {
       if (!isOfflineError(error)) {
@@ -187,7 +247,11 @@ class TaskRepository {
           'task.status.failed',
           error: error,
           stackTrace: stackTrace,
-          context: {'projectId': projectId, 'taskId': task.id, 'status': status.value},
+          context: {
+            'projectId': projectId,
+            'taskId': task.id,
+            'status': status.value
+          },
         );
         rethrow;
       }
@@ -196,7 +260,11 @@ class TaskRepository {
         'task.status.offline_queued',
         error: error,
         stackTrace: stackTrace,
-        context: {'projectId': projectId, 'taskId': task.id, 'status': status.value},
+        context: {
+          'projectId': projectId,
+          'taskId': task.id,
+          'status': status.value
+        },
       );
       final updatedTask = TaskModel(
         id: task.id,
@@ -207,8 +275,12 @@ class TaskRepository {
         createdAt: task.createdAt,
         projectId: task.projectId,
       );
+      AppLogger.info('task.repository.status.offline_cache_save.started',
+          context: {'projectId': projectId, 'taskId': updatedTask.id});
       await _localDatabase.upsertTask(updatedTask);
       if (task.id < 0) {
+        AppLogger.info('task.repository.status.pending_create_replace.started',
+            context: {'projectId': projectId, 'taskId': task.id});
         await _localDatabase.deletePendingOperationsForResource(task.id);
         await _localDatabase.addPendingOperation(
           operationType: 'CREATE_TASK',
@@ -221,23 +293,35 @@ class TaskRepository {
           projectId: projectId,
           resourceId: task.id,
         );
+        AppLogger.info('task.repository.status.offline_completed',
+            context: {'projectId': projectId, 'taskId': task.id});
         return updatedTask;
       }
 
+      AppLogger.info('task.repository.status.queue_add.started',
+          context: {'projectId': projectId, 'taskId': task.id});
       await _localDatabase.addPendingOperation(
         operationType: 'UPDATE_TASK_STATUS',
         payload: payload,
         projectId: projectId,
         resourceId: task.id,
       );
+      AppLogger.info('task.repository.status.offline_completed',
+          context: {'projectId': projectId, 'taskId': task.id});
       return updatedTask;
     }
   }
 
   Future<void> delete(int projectId, int taskId) async {
     try {
+      AppLogger.info('task.repository.delete.api.started',
+          context: {'projectId': projectId, 'taskId': taskId});
       await _apiClient.deleteVoid('/projects/$projectId/tasks/$taskId');
+      AppLogger.info('task.repository.delete.cache_delete.started',
+          context: {'projectId': projectId, 'taskId': taskId});
       await _localDatabase.deleteTask(taskId);
+      AppLogger.info('task.repository.delete.completed',
+          context: {'projectId': projectId, 'taskId': taskId});
     } catch (error, stackTrace) {
       if (!isOfflineError(error)) {
         AppLogger.error(
@@ -255,17 +339,27 @@ class TaskRepository {
         stackTrace: stackTrace,
         context: {'projectId': projectId, 'taskId': taskId},
       );
+      AppLogger.info('task.repository.delete.offline_cache_delete.started',
+          context: {'projectId': projectId, 'taskId': taskId});
       await _localDatabase.deleteTask(taskId);
       if (taskId < 0) {
+        AppLogger.info('task.repository.delete.pending_local_cleanup.started',
+            context: {'projectId': projectId, 'taskId': taskId});
         await _localDatabase.deletePendingOperationsForResource(taskId);
+        AppLogger.info('task.repository.delete.offline_completed',
+            context: {'projectId': projectId, 'taskId': taskId});
         return;
       }
+      AppLogger.info('task.repository.delete.queue_add.started',
+          context: {'projectId': projectId, 'taskId': taskId});
       await _localDatabase.addPendingOperation(
         operationType: 'DELETE_TASK',
         payload: null,
         projectId: projectId,
         resourceId: taskId,
       );
+      AppLogger.info('task.repository.delete.offline_completed',
+          context: {'projectId': projectId, 'taskId': taskId});
     }
   }
 }

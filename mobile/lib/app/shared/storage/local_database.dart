@@ -167,13 +167,14 @@ class LocalDatabase {
     final path = p.join(databasePath, 'atesteme_taskmanager.db');
     _database = await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, _) async {
         await db.execute('''
           CREATE TABLE projects (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
             description TEXT,
+            workers TEXT,
             created_at TEXT NOT NULL,
             task_count INTEGER NOT NULL DEFAULT 0
           )
@@ -217,6 +218,9 @@ class LocalDatabase {
             )
           ''');
         }
+        if (oldVersion < 3) {
+          await db.execute('ALTER TABLE projects ADD COLUMN workers TEXT');
+        }
       },
     );
 
@@ -228,6 +232,7 @@ class LocalDatabase {
       'id': project.id,
       'name': project.name,
       'description': project.description,
+      'workers': project.workers.join('\n'),
       'created_at': project.createdAt.toIso8601String(),
       'task_count': project.taskCount,
     };
