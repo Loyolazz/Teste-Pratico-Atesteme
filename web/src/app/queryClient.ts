@@ -1,4 +1,5 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
+import { showErrorAlert } from '../services/errorAlertService';
 import { logError } from '../utils/errors';
 
 export const queryClient = new QueryClient({
@@ -7,6 +8,7 @@ export const queryClient = new QueryClient({
       logError('react_query.query_error', error, {
         queryKey: query.queryKey
       });
+      showErrorAlert(error, 'Falha ao carregar dados');
     }
   }),
   mutationCache: new MutationCache({

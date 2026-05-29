@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:mobx/mobx.dart';
 
+import '../../shared/widgets/error_snack_bar.dart';
 import 'task_model.dart';
 import 'task_store.dart';
 
@@ -21,18 +23,34 @@ class TasksPage extends StatefulWidget {
 
 class _TasksPageState extends State<TasksPage> {
   final _store = Modular.get<TaskStore>();
+  late final ReactionDisposer _errorDisposer;
 
   @override
   void initState() {
     super.initState();
+    _errorDisposer = reaction<String?>(
+      (_) => _store.error.value,
+      (message) {
+        if (message != null) {
+          showErrorSnackBar(context, message);
+        }
+      },
+    );
     _store.loadTasks(widget.projectId);
+  }
+
+  @override
+  void dispose() {
+    _errorDisposer();
+    super.dispose();
   }
 
   Future<void> _openCreateSheet() async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _TaskFormSheet(projectId: widget.projectId, store: _store),
+      builder: (_) =>
+          _TaskFormSheet(projectId: widget.projectId, store: _store),
     );
   }
 
@@ -40,7 +58,8 @@ class _TasksPageState extends State<TasksPage> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _TaskFormSheet(projectId: widget.projectId, store: _store, task: task),
+      builder: (_) => _TaskFormSheet(
+          projectId: widget.projectId, store: _store, task: task),
     );
   }
 
@@ -91,9 +110,11 @@ class _TasksPageState extends State<TasksPage> {
                       final task = _store.tasks[index];
                       return _TaskTile(
                         task: task,
-                        onStatusChanged: (status) => _store.updateStatus(widget.projectId, task, status),
+                        onStatusChanged: (status) =>
+                            _store.updateStatus(widget.projectId, task, status),
                         onEdit: () => _openEditSheet(task),
-                        onDelete: () => _store.deleteTask(widget.projectId, task),
+                        onDelete: () =>
+                            _store.deleteTask(widget.projectId, task),
                       );
                     },
                   ),
@@ -131,7 +152,8 @@ class _TaskTile extends StatelessWidget {
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (task.description != null && task.description!.isNotEmpty) Text(task.description!),
+          if (task.description != null && task.description!.isNotEmpty)
+            Text(task.description!),
           const SizedBox(height: 6),
           Text('Prioridade: ${task.priority.label}'),
         ],
@@ -144,7 +166,8 @@ class _TaskTile extends StatelessWidget {
             value: task.status,
             underline: const SizedBox.shrink(),
             items: TaskStatus.values
-                .map((status) => DropdownMenuItem(value: status, child: Text(status.label)))
+                .map((status) =>
+                    DropdownMenuItem(value: status, child: Text(status.label)))
                 .toList(),
             onChanged: (status) {
               if (status != null) {
@@ -209,6 +232,7 @@ class _TaskFormSheetState extends State<_TaskFormSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
+      showErrorSnackBar(context, 'Informe o título da tarefa.');
       return;
     }
 
@@ -219,14 +243,14 @@ class _TaskFormSheetState extends State<_TaskFormSheet> {
             title: _titleController.text.trim(),
             description: _descriptionController.text.trim(),
             priority: _priority,
-          ) as bool
+          )
         : await widget.store.updateTask(
             projectId: widget.projectId,
             task: task,
             title: _titleController.text.trim(),
             description: _descriptionController.text.trim(),
             priority: _priority,
-          ) as bool;
+          );
 
     if (success && mounted) {
       Navigator.of(context).pop();
@@ -248,12 +272,14 @@ class _TaskFormSheetState extends State<_TaskFormSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(widget.task == null ? 'Nova tarefa' : 'Editar tarefa', style: Theme.of(context).textTheme.titleLarge),
+            Text(widget.task == null ? 'Nova tarefa' : 'Editar tarefa',
+                style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
             TextFormField(
               controller: _titleController,
               decoration: const InputDecoration(labelText: 'Título'),
-              validator: (value) => value == null || value.isEmpty ? 'Informe o título' : null,
+              validator: (value) =>
+                  value == null || value.isEmpty ? 'Informe o título' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -263,10 +289,11 @@ class _TaskFormSheetState extends State<_TaskFormSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<TaskPriority>(
-              value: _priority,
+              initialValue: _priority,
               decoration: const InputDecoration(labelText: 'Prioridade'),
               items: TaskPriority.values
-                  .map((priority) => DropdownMenuItem(value: priority, child: Text(priority.label)))
+                  .map((priority) => DropdownMenuItem(
+                      value: priority, child: Text(priority.label)))
                   .toList(),
               onChanged: (priority) {
                 if (priority != null) {
@@ -279,7 +306,8 @@ class _TaskFormSheetState extends State<_TaskFormSheet> {
               builder: (_) => FilledButton.icon(
                 onPressed: widget.store.isSaving.value ? null : _submit,
                 icon: const Icon(Icons.save),
-                label: Text(widget.store.isSaving.value ? 'Salvando...' : 'Salvar'),
+                label: Text(
+                    widget.store.isSaving.value ? 'Salvando...' : 'Salvar'),
               ),
             ),
           ],

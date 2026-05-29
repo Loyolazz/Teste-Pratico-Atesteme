@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:mobx/mobx.dart';
 
+import '../../shared/widgets/error_snack_bar.dart';
 import 'auth_store.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -17,9 +19,24 @@ class _RegisterPageState extends State<RegisterPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _store = Modular.get<AuthStore>();
+  late final ReactionDisposer _errorDisposer;
+
+  @override
+  void initState() {
+    super.initState();
+    _errorDisposer = reaction<String?>(
+      (_) => _store.error.value,
+      (message) {
+        if (message != null) {
+          showErrorSnackBar(context, message);
+        }
+      },
+    );
+  }
 
   @override
   void dispose() {
+    _errorDisposer();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -28,6 +45,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
+      showErrorSnackBar(context, 'Preencha nome, e-mail e uma senha válida.');
       return;
     }
 
@@ -35,7 +53,7 @@ class _RegisterPageState extends State<RegisterPage> {
       _nameController.text.trim(),
       _emailController.text.trim(),
       _passwordController.text,
-    ) as bool;
+    );
 
     if (success) {
       Modular.to.navigate('/projects/');
@@ -60,34 +78,44 @@ class _RegisterPageState extends State<RegisterPage> {
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(labelText: 'Nome'),
-                      validator: (value) => value == null || value.isEmpty ? 'Informe o nome' : null,
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Informe o nome'
+                          : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(labelText: 'E-mail'),
-                      validator: (value) => value == null || value.isEmpty ? 'Informe o e-mail' : null,
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Informe o e-mail'
+                          : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _passwordController,
                       obscureText: true,
                       decoration: const InputDecoration(labelText: 'Senha'),
-                      validator: (value) => value != null && value.length >= 6 ? null : 'Use ao menos 6 caracteres',
+                      validator: (value) => value != null && value.length >= 6
+                          ? null
+                          : 'Use ao menos 6 caracteres',
                     ),
                     const SizedBox(height: 16),
                     Observer(
                       builder: (_) => _store.error.value == null
                           ? const SizedBox.shrink()
-                          : Text(_store.error.value!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                          : Text(_store.error.value!,
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error)),
                     ),
                     const SizedBox(height: 16),
                     Observer(
                       builder: (_) => FilledButton.icon(
                         onPressed: _store.isLoading.value ? null : _submit,
                         icon: const Icon(Icons.person_add),
-                        label: Text(_store.isLoading.value ? 'Criando...' : 'Criar conta'),
+                        label: Text(_store.isLoading.value
+                            ? 'Criando...'
+                            : 'Criar conta'),
                       ),
                     ),
                   ],
@@ -100,4 +128,3 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
-

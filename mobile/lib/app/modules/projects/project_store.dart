@@ -15,10 +15,40 @@ class ProjectStore {
   final isSaving = Observable(false);
   final error = Observable<String?>(null);
 
-  late final loadProjects = Action(_loadProjects);
-  late final createProject = Action(_createProject);
-  late final updateProject = Action(_updateProject);
-  late final deleteProject = Action(_deleteProject);
+  late final Action _loadProjectsAction = Action(_loadProjects);
+  late final Action _createProjectAction = Action(_createProject);
+  late final Action _updateProjectAction = Action(_updateProject);
+  late final Action _deleteProjectAction = Action(_deleteProject);
+
+  Future<void> loadProjects() {
+    return _loadProjectsAction() as Future<void>;
+  }
+
+  Future<bool> createProject({
+    required String name,
+    required String description,
+  }) {
+    return _createProjectAction(const [], {
+      'name': name,
+      'description': description,
+    }) as Future<bool>;
+  }
+
+  Future<bool> updateProject({
+    required ProjectModel project,
+    required String name,
+    required String description,
+  }) {
+    return _updateProjectAction(const [], {
+      'project': project,
+      'name': name,
+      'description': description,
+    }) as Future<bool>;
+  }
+
+  Future<void> deleteProject(ProjectModel project) {
+    return _deleteProjectAction([project]) as Future<void>;
+  }
 
   Future<void> _loadProjects() async {
     isLoading.value = true;
@@ -30,8 +60,10 @@ class ProjectStore {
         ..clear()
         ..addAll(response);
     } catch (exception, stackTrace) {
-      AppLogger.error('project_store.load.failed', error: exception, stackTrace: stackTrace);
-      error.value = errorMessageFor(exception, fallback: 'Não foi possível carregar os projetos.');
+      AppLogger.error('project_store.load.failed',
+          error: exception, stackTrace: stackTrace);
+      error.value = errorMessageFor(exception,
+          fallback: 'Não foi possível carregar os projetos.');
     } finally {
       isLoading.value = false;
     }
@@ -45,12 +77,15 @@ class ProjectStore {
     error.value = null;
 
     try {
-      final project = await _repository.create(name: name, description: description);
+      final project =
+          await _repository.create(name: name, description: description);
       projects.insert(0, project);
       return true;
     } catch (exception, stackTrace) {
-      AppLogger.error('project_store.create.failed', error: exception, stackTrace: stackTrace);
-      error.value = errorMessageFor(exception, fallback: 'Não foi possível criar o projeto.');
+      AppLogger.error('project_store.create.failed',
+          error: exception, stackTrace: stackTrace);
+      error.value = errorMessageFor(exception,
+          fallback: 'Não foi possível criar o projeto.');
       return false;
     } finally {
       isSaving.value = false;
@@ -77,8 +112,10 @@ class ProjectStore {
       }
       return true;
     } catch (exception, stackTrace) {
-      AppLogger.error('project_store.update.failed', error: exception, stackTrace: stackTrace);
-      error.value = errorMessageFor(exception, fallback: 'Não foi possível editar o projeto.');
+      AppLogger.error('project_store.update.failed',
+          error: exception, stackTrace: stackTrace);
+      error.value = errorMessageFor(exception,
+          fallback: 'Não foi possível editar o projeto.');
       return false;
     } finally {
       isSaving.value = false;
@@ -97,7 +134,8 @@ class ProjectStore {
         stackTrace: stackTrace,
         context: {'projectId': project.id},
       );
-      error.value = errorMessageFor(exception, fallback: 'Não foi possível excluir o projeto.');
+      error.value = errorMessageFor(exception,
+          fallback: 'Não foi possível excluir o projeto.');
     }
   }
 }

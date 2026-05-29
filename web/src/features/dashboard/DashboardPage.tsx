@@ -3,6 +3,7 @@ import { CheckCircle2, LogOut, Moon, Plus, Save, Sun, X } from 'lucide-react';
 import { EmptyState } from '../../components/EmptyState';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { showErrorAlert } from '../../services/errorAlertService';
 import { notifyUser } from '../../services/notificationService';
 import { ProjectList } from '../projects/ProjectList';
 import { useProjects } from '../projects/useProjects';
@@ -85,6 +86,10 @@ export function DashboardPage() {
     setError('');
 
     try {
+      if (!projectForm.name.trim()) {
+        throw new Error('Informe o nome do projeto.');
+      }
+
       if (editingProjectId) {
         await updateProject.mutateAsync({ projectId: editingProjectId, payload: projectForm });
       } else {
@@ -93,7 +98,9 @@ export function DashboardPage() {
       }
       cancelProjectEdit();
     } catch (exception) {
-      setError(toErrorMessage(exception));
+      const message = toErrorMessage(exception);
+      setError(message);
+      showErrorAlert(message, 'Erro no projeto');
     }
   }
 
@@ -106,7 +113,9 @@ export function DashboardPage() {
     try {
       await deleteProject.mutateAsync(projectId);
     } catch (exception) {
-      setError(toErrorMessage(exception));
+      const message = toErrorMessage(exception);
+      setError(message);
+      showErrorAlert(message, 'Erro ao excluir projeto');
     }
   }
 
@@ -129,11 +138,18 @@ export function DashboardPage() {
     event.preventDefault();
 
     if (!selectedProjectId) {
+      const message = 'Selecione um projeto antes de criar tarefas.';
+      setError(message);
+      showErrorAlert(message, 'Erro na tarefa');
       return;
     }
 
     setError('');
     try {
+      if (!taskForm.title.trim()) {
+        throw new Error('Informe o título da tarefa.');
+      }
+
       if (editingTaskId) {
         await updateTask.mutateAsync({ taskId: editingTaskId, payload: taskForm });
       } else {
@@ -142,7 +158,9 @@ export function DashboardPage() {
       }
       cancelTaskEdit();
     } catch (exception) {
-      setError(toErrorMessage(exception));
+      const message = toErrorMessage(exception);
+      setError(message);
+      showErrorAlert(message, 'Erro na tarefa');
     }
   }
 
@@ -152,7 +170,9 @@ export function DashboardPage() {
       await updateTaskStatus.mutateAsync({ taskId, status });
       void notifyUser('Status atualizado', `Novo status: ${status}`);
     } catch (exception) {
-      setError(toErrorMessage(exception));
+      const message = toErrorMessage(exception);
+      setError(message);
+      showErrorAlert(message, 'Erro ao atualizar status');
     }
   }
 
@@ -165,7 +185,9 @@ export function DashboardPage() {
     try {
       await deleteTask.mutateAsync(taskId);
     } catch (exception) {
-      setError(toErrorMessage(exception));
+      const message = toErrorMessage(exception);
+      setError(message);
+      showErrorAlert(message, 'Erro ao excluir tarefa');
     }
   }
 

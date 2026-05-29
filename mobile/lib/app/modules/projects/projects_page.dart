@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:mobx/mobx.dart';
 
+import '../../shared/widgets/error_snack_bar.dart';
 import '../auth/auth_store.dart';
 import 'project_model.dart';
 import 'project_store.dart';
@@ -16,11 +18,26 @@ class ProjectsPage extends StatefulWidget {
 class _ProjectsPageState extends State<ProjectsPage> {
   final _projectStore = Modular.get<ProjectStore>();
   final _authStore = Modular.get<AuthStore>();
+  late final ReactionDisposer _errorDisposer;
 
   @override
   void initState() {
     super.initState();
+    _errorDisposer = reaction<String?>(
+      (_) => _projectStore.error.value,
+      (message) {
+        if (message != null) {
+          showErrorSnackBar(context, message);
+        }
+      },
+    );
     _projectStore.loadProjects();
+  }
+
+  @override
+  void dispose() {
+    _errorDisposer();
+    super.dispose();
   }
 
   Future<void> _logout() async {
@@ -31,7 +48,8 @@ class _ProjectsPageState extends State<ProjectsPage> {
   void _openTasks(ProjectModel project) {
     if (project.id < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sincronize o projeto antes de gerenciar tarefas.')),
+        const SnackBar(
+            content: Text('Sincronize o projeto antes de gerenciar tarefas.')),
       );
       return;
     }
@@ -139,7 +157,8 @@ class _ProjectsPageState extends State<ProjectsPage> {
                       return ListTile(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
-                          side: BorderSide(color: Theme.of(context).dividerColor),
+                          side:
+                              BorderSide(color: Theme.of(context).dividerColor),
                         ),
                         title: Text(project.name),
                         subtitle: Text('${project.taskCount} tarefas'),
@@ -211,6 +230,7 @@ class _ProjectFormSheetState extends State<_ProjectFormSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
+      showErrorSnackBar(context, 'Informe o nome do projeto.');
       return;
     }
 
@@ -219,12 +239,12 @@ class _ProjectFormSheetState extends State<_ProjectFormSheet> {
         ? await widget.store.createProject(
             name: _nameController.text.trim(),
             description: _descriptionController.text.trim(),
-          ) as bool
+          )
         : await widget.store.updateProject(
             project: project,
             name: _nameController.text.trim(),
             description: _descriptionController.text.trim(),
-          ) as bool;
+          );
 
     if (success && mounted) {
       Navigator.of(context).pop();
@@ -254,7 +274,8 @@ class _ProjectFormSheetState extends State<_ProjectFormSheet> {
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Nome'),
-              validator: (value) => value == null || value.isEmpty ? 'Informe o nome' : null,
+              validator: (value) =>
+                  value == null || value.isEmpty ? 'Informe o nome' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -267,7 +288,8 @@ class _ProjectFormSheetState extends State<_ProjectFormSheet> {
               builder: (_) => FilledButton.icon(
                 onPressed: widget.store.isSaving.value ? null : _submit,
                 icon: const Icon(Icons.save),
-                label: Text(widget.store.isSaving.value ? 'Salvando...' : 'Salvar'),
+                label: Text(
+                    widget.store.isSaving.value ? 'Salvando...' : 'Salvar'),
               ),
             ),
           ],

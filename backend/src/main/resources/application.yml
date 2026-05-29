@@ -30,3 +30,16 @@ security:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+app:
+  branding:
+    app-name: "${APP_BRAND_NAME:Task Manager}"
+    super-green: "${APP_BRAND_SUPER_GREEN:#01B636}"
+    emerald: "${APP_BRAND_EMERALD:#3BD16F}"
+    harmony-green: "${APP_BRAND_HARMONY_GREEN:#74E39A}"
+    silvery-white: "${APP_BRAND_SILVERY_WHITE:#E3E3E3}"
+    lena: "${APP_BRAND_LENA:#989898}"
+    background: "${APP_BRAND_BACKGROUND:#F7FBF8}"
+    surface: "${APP_BRAND_SURFACE:#FFFFFF}"
+    surface-soft: "${APP_BRAND_SURFACE_SOFT:#F4FFF6}"
+    text: "${APP_BRAND_TEXT:#17211F}"

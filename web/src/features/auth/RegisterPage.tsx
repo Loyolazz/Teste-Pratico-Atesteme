@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { showErrorAlert } from '../../services/errorAlertService';
 import { toErrorMessage } from '../../utils/formatters';
 
 export function RegisterPage() {
@@ -22,7 +23,9 @@ export function RegisterPage() {
     setError('');
 
     if (!name || !email || password.length < 6) {
-      setError('Preencha nome, e-mail e uma senha com pelo menos 6 caracteres.');
+      const message = 'Preencha nome, e-mail e uma senha com pelo menos 6 caracteres.';
+      setError(message);
+      showErrorAlert(message, 'Erro no cadastro');
       return;
     }
 
@@ -31,7 +34,9 @@ export function RegisterPage() {
       await register(name, email, password);
       navigate('/');
     } catch (exception) {
-      setError(toErrorMessage(exception));
+      const message = toErrorMessage(exception);
+      setError(message);
+      showErrorAlert(message, 'Erro no cadastro');
     } finally {
       setIsSubmitting(false);
     }
@@ -94,4 +99,3 @@ export function RegisterPage() {
     </main>
   );
 }
-
