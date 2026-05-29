@@ -17,11 +17,53 @@ class TaskStore {
   final isSaving = Observable(false);
   final error = Observable<String?>(null);
 
-  late final loadTasks = Action(_loadTasks);
-  late final createTask = Action(_createTask);
-  late final updateTask = Action(_updateTask);
-  late final updateStatus = Action(_updateStatus);
-  late final deleteTask = Action(_deleteTask);
+  late final Action _loadTasksAction = Action(_loadTasks);
+  late final Action _createTaskAction = Action(_createTask);
+  late final Action _updateTaskAction = Action(_updateTask);
+  late final Action _updateStatusAction = Action(_updateStatus);
+  late final Action _deleteTaskAction = Action(_deleteTask);
+
+  Future<void> loadTasks(int projectId) {
+    return _loadTasksAction([projectId]) as Future<void>;
+  }
+
+  Future<bool> createTask({
+    required int projectId,
+    required String title,
+    required String description,
+    required TaskPriority priority,
+  }) {
+    return _createTaskAction(const [], {
+      'projectId': projectId,
+      'title': title,
+      'description': description,
+      'priority': priority,
+    }) as Future<bool>;
+  }
+
+  Future<bool> updateTask({
+    required int projectId,
+    required TaskModel task,
+    required String title,
+    required String description,
+    required TaskPriority priority,
+  }) {
+    return _updateTaskAction(const [], {
+      'projectId': projectId,
+      'task': task,
+      'title': title,
+      'description': description,
+      'priority': priority,
+    }) as Future<bool>;
+  }
+
+  Future<void> updateStatus(int projectId, TaskModel task, TaskStatus status) {
+    return _updateStatusAction([projectId, task, status]) as Future<void>;
+  }
+
+  Future<void> deleteTask(int projectId, TaskModel task) {
+    return _deleteTaskAction([projectId, task]) as Future<void>;
+  }
 
   Future<void> _loadTasks(int projectId) async {
     isLoading.value = true;
@@ -39,7 +81,8 @@ class TaskStore {
         stackTrace: stackTrace,
         context: {'projectId': projectId},
       );
-      error.value = errorMessageFor(exception, fallback: 'Não foi possível carregar as tarefas.');
+      error.value = errorMessageFor(exception,
+          fallback: 'Não foi possível carregar as tarefas.');
     } finally {
       isLoading.value = false;
     }
@@ -71,14 +114,16 @@ class TaskStore {
         stackTrace: stackTrace,
         context: {'projectId': projectId},
       );
-      error.value = errorMessageFor(exception, fallback: 'Não foi possível criar a tarefa.');
+      error.value = errorMessageFor(exception,
+          fallback: 'Não foi possível criar a tarefa.');
       return false;
     } finally {
       isSaving.value = false;
     }
   }
 
-  Future<void> _updateStatus(int projectId, TaskModel task, TaskStatus status) async {
+  Future<void> _updateStatus(
+      int projectId, TaskModel task, TaskStatus status) async {
     try {
       final updatedTask = await _repository.updateStatus(
         projectId: projectId,
@@ -90,15 +135,21 @@ class TaskStore {
         // Atualiza o estado local após sucesso da API para manter a UI responsiva.
         tasks[index] = updatedTask;
       }
-      await _notificationService.show('Status atualizado', updatedTask.status.label);
+      await _notificationService.show(
+          'Status atualizado', updatedTask.status.label);
     } catch (exception, stackTrace) {
       AppLogger.error(
         'task_store.status.failed',
         error: exception,
         stackTrace: stackTrace,
-        context: {'projectId': projectId, 'taskId': task.id, 'status': status.value},
+        context: {
+          'projectId': projectId,
+          'taskId': task.id,
+          'status': status.value
+        },
       );
-      error.value = errorMessageFor(exception, fallback: 'Não foi possível atualizar o status.');
+      error.value = errorMessageFor(exception,
+          fallback: 'Não foi possível atualizar o status.');
     }
   }
 
@@ -133,7 +184,8 @@ class TaskStore {
         stackTrace: stackTrace,
         context: {'projectId': projectId, 'taskId': task.id},
       );
-      error.value = errorMessageFor(exception, fallback: 'Não foi possível editar a tarefa.');
+      error.value = errorMessageFor(exception,
+          fallback: 'Não foi possível editar a tarefa.');
       return false;
     } finally {
       isSaving.value = false;
@@ -151,7 +203,8 @@ class TaskStore {
         stackTrace: stackTrace,
         context: {'projectId': projectId, 'taskId': task.id},
       );
-      error.value = errorMessageFor(exception, fallback: 'Não foi possível excluir a tarefa.');
+      error.value = errorMessageFor(exception,
+          fallback: 'Não foi possível excluir a tarefa.');
     }
   }
 }

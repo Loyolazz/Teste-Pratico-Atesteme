@@ -20,7 +20,88 @@ web      painel React para gestão de projetos e tarefas
 mobile   app Flutter para login, projetos e tarefas
 ```
 
+## Pré-requisitos
+
+Para rodar tudo no macOS:
+
+```bash
+brew install maven
+brew install --cask flutter
+brew install cocoapods
+brew install --cask docker
+```
+
+Abra o Docker Desktop antes de subir o projeto:
+
+```bash
+open -a Docker
+docker info
+```
+
+Confira o Flutter:
+
+```bash
+flutter doctor
+```
+
+Se o Flutter reclamar de licenças Android:
+
+```bash
+flutter doctor --android-licenses
+```
+
+Se faltar Android SDK/API recente:
+
+```bash
+sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "build-tools;28.0.3" "platform-tools" "cmdline-tools;latest"
+```
+
+Se `sdkmanager` não existir, instale ou abra o Android Studio e instale pelo menu de SDK:
+
+```bash
+brew install --cask android-studio
+open -a "Android Studio"
+```
+
+No Android Studio, instale Android SDK Platform 36, Android SDK Build-Tools e Android SDK Command-line Tools.
+
 ## Como Executar
+
+### Docker completo
+
+Sobe PostgreSQL, backend e web:
+
+```bash
+docker compose up --build
+```
+
+URLs:
+
+```txt
+Web: http://localhost:3000
+API: http://localhost:8080
+Swagger: http://localhost:8080/swagger-ui.html
+OpenAPI JSON: http://localhost:8080/v3/api-docs
+```
+
+### Swagger/OpenAPI
+
+O Swagger abre sem login:
+
+```txt
+http://localhost:8080/swagger-ui.html
+```
+
+Para testar endpoints protegidos:
+
+1. Chame `POST /api/auth/register` ou `POST /api/auth/login`.
+2. Copie o `accessToken` da resposta.
+3. Clique em `Authorize`.
+4. Cole o token no formato:
+
+```txt
+Bearer SEU_ACCESS_TOKEN_AQUI
+```
 
 ### Makefile
 
@@ -39,30 +120,40 @@ make down     # derruba os containers
 make clean    # remove containers e volumes
 ```
 
-### Docker completo
+### Banco PostgreSQL
 
-Sobe PostgreSQL, backend e web:
+O Docker Compose cria o banco com estas credenciais:
+
+```txt
+Host: localhost
+Port: 5432
+Database: taskmanager
+Username: postgres
+Password: postgres
+```
+
+Use esses dados para conectar por DataGrip, IntelliJ, DBeaver ou outro cliente PostgreSQL.
+
+Se aparecer o erro abaixo ao testar a conexão:
+
+```txt
+FATAL: role "postgres" does not exist
+```
+
+Provavelmente o PostgreSQL local do Homebrew está usando a porta `5432` em vez do banco do Docker. Pare o serviço local e suba o compose novamente:
 
 ```bash
+brew services stop postgresql@18
+
+docker compose down
 docker compose up --build
 ```
 
-URLs:
-
-```txt
-Web: http://localhost:3000
-API: http://localhost:8080
-```
-
-### Banco PostgreSQL opcional
-
-O backend roda com H2 em memória por padrão. Para usar PostgreSQL:
-
-```bash
-docker compose up -d
-```
+Se preferir manter o PostgreSQL local ligado, altere o mapeamento de porta do serviço `postgres` no `docker-compose.yml` para `5433:5432` e conecte usando `Port: 5433`.
 
 ### Backend
+
+Rodando localmente com H2:
 
 ```bash
 cd backend
@@ -74,12 +165,6 @@ Com PostgreSQL:
 ```bash
 cd backend
 SPRING_PROFILES_ACTIVE=postgres mvn spring-boot:run
-```
-
-Swagger/OpenAPI:
-
-```txt
-http://localhost:8080/swagger-ui.html
 ```
 
 ### Web
@@ -98,13 +183,45 @@ http://localhost:5173
 
 ### Mobile
 
+Na primeira execução, instale as dependências:
+
 ```bash
 cd mobile
 flutter pub get
-flutter run --dart-define=API_URL=http://10.0.2.2:8080/api
 ```
 
-Use `http://localhost:8080/api` ao rodar em simulador iOS ou desktop.
+Se o Flutter encontrar o emulador, mas disser que ele não é suportado pelo projeto, gere a plataforma Android:
+
+```bash
+flutter create --platforms=android .
+flutter pub get
+```
+
+Com o emulador Android aberto:
+
+```bash
+flutter run -d emulator-5554 --dart-define=API_URL=http://10.0.2.2:8080/api
+```
+
+O projeto usa `flutter_local_notifications`; por isso o Android precisa de core library desugaring habilitado em `android/app/build.gradle.kts`. Se o Gradle exibir a mensagem `requires core library desugaring to be enabled`, confira se o arquivo contém:
+
+```kotlin
+compileOptions {
+    isCoreLibraryDesugaringEnabled = true
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+}
+```
+
+Para listar os dispositivos disponíveis:
+
+```bash
+flutter devices
+```
+
+Use `http://10.0.2.2:8080/api` no emulador Android, porque `localhost` dentro do Android aponta para o próprio emulador. Use `http://localhost:8080/api` ao rodar em simulador iOS ou desktop.
 
 ## Variáveis de Ambiente
 
@@ -130,6 +247,18 @@ Mobile:
 ```bash
 flutter run --dart-define=API_URL=http://10.0.2.2:8080/api
 ```
+
+## CI/CD
+
+O repositório tem GitHub Actions configurado para validar backend, web, mobile e Docker.
+
+- `CI`: roda em Pull Requests para `main`, pushes na `main` e execução manual.
+- `CD`: roda em pushes na `main`, tags `v*` e execução manual.
+- `Checks`: workflow reutilizável chamado pelo CI e pelo CD.
+
+O CD só publica imagens no GitHub Container Registry depois que o mesmo portão de qualidade do CI passa. Para configurar a URL da API usada no build web de produção, crie a variável `VITE_API_URL` em `Settings > Secrets and variables > Actions > Variables`.
+
+Mais detalhes estão em `docs/deploy.md`.
 
 ## Endpoints Principais
 
@@ -162,6 +291,8 @@ Na web, Context API guarda apenas sessão e usuário autenticado. React Query cu
 
 No frontend web, falhas HTTP e de rede são normalizadas em um formato único, registradas no console com contexto da operação e exibidas na tela quando afetam o fluxo do usuário. Erros globais de renderização, promises não tratadas e falhas de sincronização offline também são capturados.
 
+Web e mobile exibem alertas visíveis para erros de validação local, credenciais inválidas, sessão expirada, ausência de permissão, conflitos, registros não encontrados, API fora do ar, falhas de sincronização offline e erros inesperados. Mensagens técnicas ficam nos logs; a interface recebe mensagens amigáveis para orientar a ação do usuário.
+
 Além do cache em memória do React Query, a web usa SQLite via WebAssembly (`sql.js`) persistido em IndexedDB. Essa camada guarda projetos e tarefas como cache local e possui fila de mutações pendentes para sincronizar quando a conexão voltar. Ao sair da sessão, o cache local é limpo para evitar vazamento entre usuários.
 
 No mobile, Flutter Modular organiza rotas e dependências; MobX mantém estado reativo de autenticação, projetos e tarefas. Repositories isolam chamadas HTTP para as stores não conhecerem detalhes da API.
@@ -189,6 +320,7 @@ A fila offline do web e do mobile compacta mutações antes da sincronização: 
 - Erros tipados e logs de console no backend, web e mobile.
 - CI/CD com GitHub Actions.
 - Tratamento global de erros.
+- Alertas de erro no web e mobile para validação, autenticação, rede, API, sessão e sincronização offline.
 - Validação de ownership.
 - Estrutura modular em backend, web e mobile.
 

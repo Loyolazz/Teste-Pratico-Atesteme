@@ -17,11 +17,14 @@ class AppException implements Exception {
     final fieldErrors = _fieldErrorsFrom(data?['fieldErrors']);
 
     return AppException(
-      message: data?['message']?.toString() ?? _messageForDio(error),
-      code: data?['error']?.toString() ?? (statusCode == null ? 'NETWORK_ERROR' : 'HTTP_$statusCode'),
+      message:
+          data?['message']?.toString() ?? _messageForDio(error, statusCode),
+      code: data?['error']?.toString() ??
+          (statusCode == null ? 'NETWORK_ERROR' : 'HTTP_$statusCode'),
       statusCode: statusCode,
       path: data?['path']?.toString() ?? error.requestOptions.path,
-      requestId: data?['requestId']?.toString() ?? response?.headers.value('x-request-id'),
+      requestId: data?['requestId']?.toString() ??
+          response?.headers.value('x-request-id'),
       fieldErrors: fieldErrors,
     );
   }
@@ -98,15 +101,24 @@ List<AppFieldError> _fieldErrorsFrom(Object? data) {
       .toList();
 }
 
-String _messageForDio(DioException error) {
+String _messageForDio(DioException error, int? statusCode) {
   switch (error.type) {
     case DioExceptionType.connectionTimeout:
     case DioExceptionType.sendTimeout:
     case DioExceptionType.receiveTimeout:
     case DioExceptionType.connectionError:
-      return 'Não foi possível conectar ao servidor.';
+      return 'Não foi possível conectar ao servidor. Verifique a conexão ou se a API está rodando.';
     case DioExceptionType.badResponse:
-      return 'Não foi possível concluir a solicitação.';
+      return switch (statusCode) {
+        400 => 'Verifique os campos enviados.',
+        401 => 'E-mail, senha ou sessão inválidos. Faça login novamente.',
+        403 => 'Você não tem permissão para executar esta ação.',
+        404 => 'O item solicitado não foi encontrado.',
+        409 =>
+          'Não foi possível concluir porque há conflito com dados já existentes.',
+        500 => 'Erro interno no servidor. Tente novamente em instantes.',
+        _ => 'Não foi possível concluir a solicitação.',
+      };
     case DioExceptionType.cancel:
       return 'Solicitação cancelada.';
     case DioExceptionType.badCertificate:

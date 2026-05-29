@@ -55,14 +55,50 @@ export function toErrorMessage(error: unknown) {
       .map((fieldError) => `${fieldError.field}: ${fieldError.message}`)
       .join(' ');
 
-    return fieldMessages ? `${error.message} ${fieldMessages}` : error.message;
+    const message = friendlyApiMessage(error);
+    return fieldMessages ? `${message} ${fieldMessages}` : message;
   }
 
   if (error instanceof Error && error.message) {
-    return error.message;
+    return friendlyRuntimeMessage(error.message);
   }
 
   return 'Não foi possível concluir a ação.';
+}
+
+function friendlyApiMessage(error: ApiError) {
+  if (error.message) {
+    return error.message;
+  }
+
+  if (error.error === 'NETWORK_ERROR' || error.status === 0) {
+    return 'Não foi possível conectar ao servidor. Verifique sua conexão ou se a API está rodando.';
+  }
+
+  switch (error.status) {
+    case 400:
+      return 'Verifique os campos enviados.';
+    case 401:
+      return 'E-mail, senha ou sessão inválidos. Faça login novamente.';
+    case 403:
+      return 'Você não tem permissão para executar esta ação.';
+    case 404:
+      return 'O item solicitado não foi encontrado.';
+    case 409:
+      return 'Não foi possível concluir porque há conflito com dados já existentes.';
+    case 500:
+      return 'Erro interno no servidor. Tente novamente em instantes.';
+    default:
+      return 'Não foi possível concluir a ação.';
+  }
+}
+
+function friendlyRuntimeMessage(message: string) {
+  if (/failed to fetch|networkerror|load failed/i.test(message)) {
+    return 'Não foi possível conectar ao servidor. Verifique sua conexão ou se a API está rodando.';
+  }
+
+  return message;
 }
 
 export function logError(scope: string, error: unknown, context: ErrorContext = {}) {

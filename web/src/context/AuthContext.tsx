@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react';
 import { queryClient } from '../app/queryClient';
 import { authService } from '../services/authService';
+import { showErrorAlert } from '../services/errorAlertService';
 import { localDatabase } from '../services/localDatabase';
 import { tokenStorage } from '../services/tokenStorage';
 import type { User } from '../types/api';
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(setUser)
       .catch((error) => {
         logWarning('auth.session_restore_failed', error);
+        showErrorAlert('Sua sessão expirou. Faça login novamente.', 'Sessão expirada');
         logout();
       })
       .finally(() => setIsCheckingSession(false));

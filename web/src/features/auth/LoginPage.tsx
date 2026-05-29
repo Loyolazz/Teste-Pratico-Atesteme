@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { showErrorAlert } from '../../services/errorAlertService';
 import { toErrorMessage } from '../../utils/formatters';
 
 export function LoginPage() {
@@ -21,7 +22,9 @@ export function LoginPage() {
     setError('');
 
     if (!email || !password) {
-      setError('Informe e-mail e senha.');
+      const message = 'Informe e-mail e senha.';
+      setError(message);
+      showErrorAlert(message, 'Erro no login');
       return;
     }
 
@@ -30,7 +33,9 @@ export function LoginPage() {
       await login(email, password);
       navigate('/');
     } catch (exception) {
-      setError(toErrorMessage(exception));
+      const message = toErrorMessage(exception);
+      setError(message);
+      showErrorAlert(message, 'Erro no login');
     } finally {
       setIsSubmitting(false);
     }
@@ -82,4 +87,3 @@ export function LoginPage() {
     </main>
   );
 }
-

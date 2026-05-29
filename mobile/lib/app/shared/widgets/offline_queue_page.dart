@@ -5,6 +5,7 @@ import '../services/app_error.dart';
 import '../services/app_logger.dart';
 import '../services/offline_sync_service.dart';
 import '../storage/local_database.dart';
+import 'error_snack_bar.dart';
 
 class OfflineQueuePage extends StatefulWidget {
   const OfflineQueuePage({super.key});
@@ -45,12 +46,16 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
         _isLoading = false;
       });
     } catch (error, stackTrace) {
-      AppLogger.error('offline_queue.load.failed', error: error, stackTrace: stackTrace);
+      AppLogger.error('offline_queue.load.failed',
+          error: error, stackTrace: stackTrace);
       if (mounted) {
+        final message = errorMessageFor(error,
+            fallback: 'Não foi possível carregar a fila offline.');
         setState(() {
-          _message = errorMessageFor(error, fallback: 'Não foi possível carregar a fila offline.');
+          _message = message;
           _isLoading = false;
         });
+        showErrorSnackBar(context, message);
       }
     }
   }
@@ -68,11 +73,15 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
         setState(() => _message = 'Sincronização concluída.');
       }
     } catch (error, stackTrace) {
-      AppLogger.error('offline_queue.sync.failed', error: error, stackTrace: stackTrace);
+      AppLogger.error('offline_queue.sync.failed',
+          error: error, stackTrace: stackTrace);
       if (mounted) {
+        final message = errorMessageFor(error,
+            fallback: 'Não foi possível sincronizar agora.');
         setState(() {
-          _message = errorMessageFor(error, fallback: 'Não foi possível sincronizar agora.');
+          _message = message;
         });
+        showErrorSnackBar(context, message);
       }
     } finally {
       if (mounted) {
@@ -86,7 +95,8 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Limpar fila offline'),
-        content: const Text('As alterações pendentes serão descartadas deste dispositivo.'),
+        content: const Text(
+            'As alterações pendentes serão descartadas deste dispositivo.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -105,11 +115,15 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
         await _localDatabase.clearPendingOperations();
         await _load();
       } catch (error, stackTrace) {
-        AppLogger.error('offline_queue.clear.failed', error: error, stackTrace: stackTrace);
+        AppLogger.error('offline_queue.clear.failed',
+            error: error, stackTrace: stackTrace);
         if (mounted) {
+          final message = errorMessageFor(error,
+              fallback: 'Não foi possível limpar a fila offline.');
           setState(() {
-            _message = errorMessageFor(error, fallback: 'Não foi possível limpar a fila offline.');
+            _message = message;
           });
+          showErrorSnackBar(context, message);
         }
       }
     }
@@ -161,7 +175,8 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
                     const _EmptyQueue()
                   else
                     ..._operations.map((operation) {
-                      final operationType = operation['operation_type'] as String;
+                      final operationType =
+                          operation['operation_type'] as String;
                       final createdAt = operation['created_at'] as String;
                       return Card(
                         child: ListTile(
