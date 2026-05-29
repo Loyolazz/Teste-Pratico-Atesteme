@@ -21,21 +21,27 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
   var _isLoading = true;
   var _isSyncing = false;
   String? _message;
+  String? _phase;
 
   @override
   void initState() {
     super.initState();
+    AppLogger.info('screen.offline_queue.opened');
     _load();
   }
 
   Future<void> _load() async {
+    AppLogger.info('screen.offline_queue.load.started');
     setState(() {
       _isLoading = true;
       _message = null;
+      _phase = 'Lendo alterações salvas no aparelho...';
     });
 
     try {
       final operations = await _localDatabase.getPendingOperations();
+      AppLogger.info('screen.offline_queue.load.completed',
+          context: {'items': operations.length});
 
       if (!mounted) {
         return;
@@ -44,6 +50,7 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
       setState(() {
         _operations = operations;
         _isLoading = false;
+        _phase = null;
       });
     } catch (error, stackTrace) {
       AppLogger.error('offline_queue.load.failed',
@@ -54,6 +61,7 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
         setState(() {
           _message = message;
           _isLoading = false;
+          _phase = null;
         });
         showErrorSnackBar(context, message);
       }
@@ -61,17 +69,24 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
   }
 
   Future<void> _sync() async {
+    AppLogger.info('screen.offline_queue.sync.started',
+        context: {'items': _operations.length});
     setState(() {
       _isSyncing = true;
       _message = null;
+      _phase = 'Enviando fila offline para a API...';
     });
 
     try {
       await _offlineSyncService.syncPendingOperations();
+      if (mounted) {
+        setState(() => _phase = 'Atualizando a fila local...');
+      }
       await _load();
       if (mounted) {
         setState(() => _message = 'Sincronização concluída.');
       }
+      AppLogger.info('screen.offline_queue.sync.completed');
     } catch (error, stackTrace) {
       AppLogger.error('offline_queue.sync.failed',
           error: error, stackTrace: stackTrace);
@@ -80,12 +95,16 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
             fallback: 'Não foi possível sincronizar agora.');
         setState(() {
           _message = message;
+          _phase = null;
         });
         showErrorSnackBar(context, message);
       }
     } finally {
       if (mounted) {
-        setState(() => _isSyncing = false);
+        setState(() {
+          _isSyncing = false;
+          _phase = null;
+        });
       }
     }
   }
@@ -111,9 +130,13 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
     );
 
     if (confirmed == true) {
+      AppLogger.info('screen.offline_queue.clear.started',
+          context: {'items': _operations.length});
       try {
+        setState(() => _phase = 'Limpando alterações pendentes...');
         await _localDatabase.clearPendingOperations();
         await _load();
+        AppLogger.info('screen.offline_queue.clear.completed');
       } catch (error, stackTrace) {
         AppLogger.error('offline_queue.clear.failed',
             error: error, stackTrace: stackTrace);
@@ -122,6 +145,7 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
               fallback: 'Não foi possível limpar a fila offline.');
           setState(() {
             _message = message;
+            _phase = null;
           });
           showErrorSnackBar(context, message);
         }
@@ -156,12 +180,16 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? _LoadingState(message: _phase ?? 'Carregando fila offline...')
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                 children: [
+                  if (_phase != null) ...[
+                    _PhaseCard(message: _phase!),
+                    const SizedBox(height: 12),
+                  ],
                   if (_message != null) ...[
                     Card(
                       child: Padding(
@@ -199,6 +227,55 @@ class _OfflineQueuePageState extends State<OfflineQueuePage> {
               )
             : const Icon(Icons.sync),
         label: Text(_isSyncing ? 'Sincronizando...' : 'Sincronizar'),
+      ),
+    );
+  }
+}
+
+class _LoadingState extends StatelessWidget {
+  const _LoadingState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(message, textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PhaseCard extends StatelessWidget {
+  const _PhaseCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
       ),
     );
   }

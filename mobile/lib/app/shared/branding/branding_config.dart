@@ -10,21 +10,33 @@ class BrandingConfig {
   });
 
   static const apiFallbackPalette = BrandingPalette(
-    primary: Color(0xFFDFCCB4),
-    secondary: Color(0xFFECDAC3),
-    accent: Color(0xFFFEDEB8),
-    background: Color(0xFFFEF5E2),
-    surface: Color(0xFFF6E8D5),
-    surfaceSoft: Color(0xFFFEDEB8),
-    border: Color(0xFFECDAC3),
-    muted: Color(0xFF8F7E69),
-    text: Color(0xFF3A3026),
+    primary: Color(0xFF008C35),
+    secondary: Color(0xFF27B46A),
+    accent: Color(0xFFD9F6E2),
+    background: Color(0xFFEAF3EE),
+    surface: Color(0xFFFBFEFC),
+    surfaceSoft: Color(0xFFEEF8F2),
+    border: Color(0xFFCADBD1),
+    muted: Color(0xFF66756D),
+    text: Color(0xFF17211F),
+  );
+
+  static const apiDarkFallbackPalette = BrandingPalette(
+    primary: Color(0xFF4ADE80),
+    secondary: Color(0xFF22C55E),
+    accent: Color(0xFF143820),
+    background: Color(0xFF121714),
+    surface: Color(0xFF202621),
+    surfaceSoft: Color(0xFF263228),
+    border: Color(0xFF2F5740),
+    muted: Color(0xFFA7B5AC),
+    text: Color(0xFFEEF7F1),
   );
 
   static const fallback = BrandingConfig(
     appName: 'Task Manager',
     light: apiFallbackPalette,
-    dark: apiFallbackPalette,
+    dark: apiDarkFallbackPalette,
     fallbackPalette: apiFallbackPalette,
   );
 

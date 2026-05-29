@@ -57,29 +57,29 @@ public class BrandingProperties {
 
         static Palette lightDefaults() {
             Palette palette = new Palette();
-            palette.primary = "#01B636";
-            palette.secondary = "#3BD16F";
-            palette.accent = "#74E39A";
-            palette.background = "#F7FBF8";
-            palette.surface = "#FFFFFF";
-            palette.surfaceSoft = "#F4FFF6";
-            palette.border = "#E3E3E3";
-            palette.muted = "#989898";
+            palette.primary = "#008C35";
+            palette.secondary = "#27B46A";
+            palette.accent = "#D9F6E2";
+            palette.background = "#EAF3EE";
+            palette.surface = "#FBFEFC";
+            palette.surfaceSoft = "#EEF8F2";
+            palette.border = "#CADBD1";
+            palette.muted = "#66756D";
             palette.text = "#17211F";
             return palette;
         }
 
         static Palette darkDefaults() {
             Palette palette = new Palette();
-            palette.primary = "#003297";
-            palette.secondary = "#00157F";
-            palette.accent = "#00094B";
-            palette.background = "#0C0C0C";
-            palette.surface = "#1D1D1D";
-            palette.surfaceSoft = "#242424";
-            palette.border = "#003297";
-            palette.muted = "#989898";
-            palette.text = "#E3E3E3";
+            palette.primary = "#4ADE80";
+            palette.secondary = "#22C55E";
+            palette.accent = "#143820";
+            palette.background = "#121714";
+            palette.surface = "#202621";
+            palette.surfaceSoft = "#263228";
+            palette.border = "#2F5740";
+            palette.muted = "#A7B5AC";
+            palette.text = "#EEF7F1";
             return palette;
         }
 

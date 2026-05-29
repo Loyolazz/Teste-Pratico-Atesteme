@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:mobx/mobx.dart';
 
 import '../../shared/branding/branding_scope.dart';
+import '../../shared/services/app_logger.dart';
 import '../../shared/widgets/error_snack_bar.dart';
 import 'auth_store.dart';
 
@@ -25,6 +26,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void initState() {
     super.initState();
+    AppLogger.info('screen.register.opened');
     _errorDisposer = reaction<String?>(
       (_) => _store.error.value,
       (message) {
@@ -45,18 +47,25 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _submit() async {
+    AppLogger.info('screen.register.submit_tapped');
     if (!_formKey.currentState!.validate()) {
+      AppLogger.warning('screen.register.validation_failed');
       showErrorSnackBar(context, 'Preencha nome, e-mail e uma senha válida.');
       return;
     }
 
+    AppLogger.info('screen.register.calling_store');
     final success = await _store.register(
       _nameController.text.trim(),
       _emailController.text.trim(),
       _passwordController.text,
     );
+    AppLogger.info('screen.register.store_returned', context: {
+      'success': success,
+    });
 
     if (success) {
+      AppLogger.info('screen.register.navigate_projects');
       Modular.to.navigate('/projects/');
     }
   }
@@ -126,6 +135,18 @@ class _RegisterPageState extends State<RegisterPage> {
                             ? 'Criando...'
                             : 'Criar conta'),
                       ),
+                    ),
+                    Observer(
+                      builder: (_) => _store.loadingPhase.value == null
+                          ? const SizedBox.shrink()
+                          : Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Text(
+                                _store.loadingPhase.value!,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
                     ),
                   ],
                 ),

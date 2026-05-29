@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:mobx/mobx.dart';
 
 import '../../shared/branding/branding_scope.dart';
+import '../../shared/services/app_logger.dart';
 import '../../shared/widgets/error_snack_bar.dart';
 import 'auth_store.dart';
 
@@ -24,6 +25,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
+    AppLogger.info('screen.login.opened');
     _errorDisposer = reaction<String?>(
       (_) => _store.error.value,
       (message) {
@@ -43,17 +45,24 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _submit() async {
+    AppLogger.info('screen.login.submit_tapped');
     if (!_formKey.currentState!.validate()) {
+      AppLogger.warning('screen.login.validation_failed');
       showErrorSnackBar(context, 'Preencha e-mail e senha para entrar.');
       return;
     }
 
+    AppLogger.info('screen.login.calling_store');
     final success = await _store.login(
       _emailController.text.trim(),
       _passwordController.text,
     );
+    AppLogger.info('screen.login.store_returned', context: {
+      'success': success,
+    });
 
     if (success) {
+      AppLogger.info('screen.login.navigate_projects');
       Modular.to.navigate('/projects/');
     }
   }
@@ -111,6 +120,18 @@ class _LoginPageState extends State<LoginPage> {
                         label: Text(
                             _store.isLoading.value ? 'Entrando...' : 'Entrar'),
                       ),
+                    ),
+                    Observer(
+                      builder: (_) => _store.loadingPhase.value == null
+                          ? const SizedBox.shrink()
+                          : Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Text(
+                                _store.loadingPhase.value!,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
                     ),
                     TextButton(
                       onPressed: () => Modular.to.navigate('/auth/register'),

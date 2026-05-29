@@ -37,8 +37,8 @@ class LocalDatabase {
     db.run('DELETE FROM projects');
 
     const statement = db.prepare(`
-      INSERT INTO projects (id, name, description, created_at, task_count)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO projects (id, name, description, workers, created_at, task_count)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
 
     try {
@@ -47,6 +47,7 @@ class LocalDatabase {
           project.id,
           project.name,
           project.description ?? null,
+          JSON.stringify(project.workers ?? []),
           project.createdAt,
           project.taskCount
         ]);
@@ -61,17 +62,19 @@ class LocalDatabase {
   async upsertProject(project: Project) {
     const db = await this.database();
     db.run(`
-      INSERT INTO projects (id, name, description, created_at, task_count)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO projects (id, name, description, workers, created_at, task_count)
+      VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name,
         description = excluded.description,
+        workers = excluded.workers,
         created_at = excluded.created_at,
         task_count = excluded.task_count
     `, [
       project.id,
       project.name,
       project.description ?? null,
+      JSON.stringify(project.workers ?? []),
       project.createdAt,
       project.taskCount
     ]);
@@ -88,13 +91,14 @@ class LocalDatabase {
   async getProjects() {
     const db = await this.database();
     return this.query<Project>(db, `
-      SELECT id, name, description, created_at, task_count
+      SELECT id, name, description, workers, created_at, task_count
       FROM projects
       ORDER BY datetime(created_at) DESC
     `, (row) => ({
       id: Number(row.id),
       name: String(row.name),
       description: row.description === null ? null : String(row.description),
+      workers: this.parseWorkers(row.workers),
       createdAt: String(row.created_at),
       taskCount: Number(row.task_count)
     }));
@@ -284,6 +288,7 @@ class LocalDatabase {
         id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
+        workers TEXT,
         created_at TEXT NOT NULL,
         task_count INTEGER NOT NULL DEFAULT 0
       );
@@ -309,6 +314,34 @@ class LocalDatabase {
         created_at TEXT NOT NULL
       );
     `);
+    this.ensureColumn(db, 'projects', 'workers', 'TEXT');
+  }
+
+  private ensureColumn(db: Database, table: string, column: string, definition: string) {
+    const columns = this.query<string>(
+      db,
+      `PRAGMA table_info(${table})`,
+      (row) => String(row.name)
+    );
+
+    if (!columns.includes(column)) {
+      db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
+  }
+
+  private parseWorkers(value: SqlValue) {
+    if (value === null) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(String(value)) as unknown;
+      return Array.isArray(parsed)
+        ? parsed.filter((worker): worker is string => typeof worker === 'string')
+        : [];
+    } catch {
+      return [];
+    }
   }
 
   private resolvePendingOperation(

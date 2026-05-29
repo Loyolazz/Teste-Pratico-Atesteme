@@ -3,6 +3,7 @@ package com.atesteme.taskmanager.project;
 import com.atesteme.taskmanager.exception.ResourceNotFoundException;
 import com.atesteme.taskmanager.security.AuthenticatedUserProvider;
 import com.atesteme.taskmanager.user.User;
+import java.util.LinkedHashSet;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +32,12 @@ public class ProjectService {
     public ProjectResponse create(ProjectRequest request) {
         // O usuário autenticado vem do JWT para impedir manipulação de ownership pelo client.
         User user = authenticatedUserProvider.getCurrentUser();
-        Project project = new Project(request.name().trim(), normalizeDescription(request.description()), user);
+        Project project = new Project(
+                request.name().trim(),
+                normalizeDescription(request.description()),
+                serializeWorkers(request.workers()),
+                user
+        );
         return toResponse(projectRepository.save(project));
     }
 
@@ -39,7 +45,11 @@ public class ProjectService {
     public ProjectResponse update(Long projectId, ProjectRequest request) {
         User user = authenticatedUserProvider.getCurrentUser();
         Project project = findOwnedProject(projectId, user.getId());
-        project.update(request.name().trim(), normalizeDescription(request.description()));
+        project.update(
+                request.name().trim(),
+                normalizeDescription(request.description()),
+                serializeWorkers(request.workers())
+        );
         return toResponse(project);
     }
 
@@ -61,6 +71,7 @@ public class ProjectService {
                 project.getId(),
                 project.getName(),
                 project.getDescription(),
+                parseWorkers(project.getWorkers()),
                 project.getCreatedAt(),
                 project.getTasks().size()
         );
@@ -69,5 +80,30 @@ public class ProjectService {
     private String normalizeDescription(String description) {
         return description == null || description.isBlank() ? null : description.trim();
     }
-}
 
+    private String serializeWorkers(List<String> workers) {
+        if (workers == null || workers.isEmpty()) {
+            return null;
+        }
+
+        LinkedHashSet<String> normalizedWorkers = new LinkedHashSet<>();
+        for (String worker : workers) {
+            if (worker != null && !worker.isBlank()) {
+                normalizedWorkers.add(worker.trim());
+            }
+        }
+
+        return normalizedWorkers.isEmpty() ? null : String.join("\n", normalizedWorkers);
+    }
+
+    private List<String> parseWorkers(String workers) {
+        if (workers == null || workers.isBlank()) {
+            return List.of();
+        }
+
+        return workers.lines()
+                .map(String::trim)
+                .filter(worker -> !worker.isBlank())
+                .toList();
+    }
+}

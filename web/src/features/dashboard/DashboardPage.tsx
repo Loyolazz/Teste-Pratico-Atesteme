@@ -1,14 +1,20 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, LogOut, Moon, Plus, Save, Sun, X } from 'lucide-react';
+import { LogOut, Moon, Plus, Save, Sun, X } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { EmptyState } from '../../components/EmptyState';
+import { SelectField, type SelectOption } from '../../components/SelectField';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { showErrorAlert } from '../../services/errorAlertService';
 import { notifyUser } from '../../services/notificationService';
+import { userService } from '../../services/userService';
 import { ProjectList } from '../projects/ProjectList';
+import { ProjectWorkersEditor } from '../projects/ProjectWorkersEditor';
 import { useProjects } from '../projects/useProjects';
 import { TaskFilters } from '../tasks/TaskFilters';
-import { TaskStatusBadge } from '../tasks/TaskStatusBadge';
+import { TaskPriorityBadge } from '../tasks/TaskPriorityBadge';
+import { TaskEditModal } from '../tasks/TaskEditModal';
+import { TaskStatusBadge, TaskStatusIcon } from '../tasks/TaskStatusBadge';
 import { useTasks } from '../tasks/useTasks';
 import type { Project, Task, TaskPayload, TaskPriority, TaskStatus } from '../../types/api';
 import { formatDate, toErrorMessage } from '../../utils/formatters';
@@ -20,20 +26,38 @@ const initialTaskForm: TaskPayload = {
   status: 'PENDENTE'
 };
 
+const priorityOptions: SelectOption<TaskPriority>[] = [
+  { value: 'BAIXA', label: 'Baixa' },
+  { value: 'MEDIA', label: 'Média' },
+  { value: 'ALTA', label: 'Alta' }
+];
+
+const statusOptions: SelectOption<TaskStatus>[] = [
+  { value: 'PENDENTE', label: 'Pendente' },
+  { value: 'EM_ANDAMENTO', label: 'Em andamento' },
+  { value: 'CONCLUIDA', label: 'Concluída' }
+];
+
 export function DashboardPage() {
   const { user, logout } = useAuth();
   const { appName, theme, toggleTheme } = useTheme();
   const { query: projectQuery, createProject, updateProject, deleteProject } = useProjects();
+  const userQuery = useQuery({
+    queryKey: ['assignable-users'],
+    queryFn: userService.listAssignable
+  });
   const projects = projectQuery.data ?? [];
+  const assignableUsers = userQuery.data ?? [];
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
-  const { query: taskQuery, createTask, updateTask, updateTaskStatus, deleteTask } = useTasks(selectedProjectId);
+  const { query: taskQuery, createTask, updateTask, deleteTask } = useTasks(selectedProjectId);
   const tasks = taskQuery.data ?? [];
 
-  const [projectForm, setProjectForm] = useState({ name: '', description: '' });
+  const [projectForm, setProjectForm] = useState({ name: '', description: '', workers: [] as string[] });
   const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
   const [taskForm, setTaskForm] = useState<TaskPayload>(initialTaskForm);
-  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editingTaskForm, setEditingTaskForm] = useState<TaskPayload>(initialTaskForm);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'ALL'>('ALL');
   const [error, setError] = useState('');
@@ -72,13 +96,14 @@ export function DashboardPage() {
     setEditingProjectId(project.id);
     setProjectForm({
       name: project.name,
-      description: project.description ?? ''
+      description: project.description ?? '',
+      workers: project.workers ?? []
     });
   }
 
   function cancelProjectEdit() {
     setEditingProjectId(null);
-    setProjectForm({ name: '', description: '' });
+    setProjectForm({ name: '', description: '', workers: [] });
   }
 
   async function handleProjectSubmit(event: FormEvent) {
@@ -120,8 +145,8 @@ export function DashboardPage() {
   }
 
   function startTaskEdit(task: Task) {
-    setEditingTaskId(task.id);
-    setTaskForm({
+    setEditingTask(task);
+    setEditingTaskForm({
       title: task.title,
       description: task.description ?? '',
       priority: task.priority,
@@ -130,8 +155,8 @@ export function DashboardPage() {
   }
 
   function cancelTaskEdit() {
-    setEditingTaskId(null);
-    setTaskForm(initialTaskForm);
+    setEditingTask(null);
+    setEditingTaskForm(initialTaskForm);
   }
 
   async function handleTaskSubmit(event: FormEvent) {
@@ -150,29 +175,13 @@ export function DashboardPage() {
         throw new Error('Informe o título da tarefa.');
       }
 
-      if (editingTaskId) {
-        await updateTask.mutateAsync({ taskId: editingTaskId, payload: taskForm });
-      } else {
-        await createTask.mutateAsync(taskForm);
-        void notifyUser('Tarefa criada', taskForm.title);
-      }
-      cancelTaskEdit();
+      await createTask.mutateAsync(taskForm);
+      void notifyUser('Tarefa criada', taskForm.title);
+      setTaskForm(initialTaskForm);
     } catch (exception) {
       const message = toErrorMessage(exception);
       setError(message);
       showErrorAlert(message, 'Erro na tarefa');
-    }
-  }
-
-  async function handleTaskStatus(taskId: number, status: TaskStatus) {
-    setError('');
-    try {
-      await updateTaskStatus.mutateAsync({ taskId, status });
-      void notifyUser('Status atualizado', `Novo status: ${status}`);
-    } catch (exception) {
-      const message = toErrorMessage(exception);
-      setError(message);
-      showErrorAlert(message, 'Erro ao atualizar status');
     }
   }
 
@@ -188,6 +197,29 @@ export function DashboardPage() {
       const message = toErrorMessage(exception);
       setError(message);
       showErrorAlert(message, 'Erro ao excluir tarefa');
+    }
+  }
+
+  async function handleTaskEditSubmit(event: FormEvent) {
+    event.preventDefault();
+
+    if (!editingTask) {
+      return;
+    }
+
+    setError('');
+    try {
+      if (!editingTaskForm.title.trim()) {
+        throw new Error('Informe o título da tarefa.');
+      }
+
+      await updateTask.mutateAsync({ taskId: editingTask.id, payload: editingTaskForm });
+      void notifyUser('Tarefa editada', editingTaskForm.title);
+      cancelTaskEdit();
+    } catch (exception) {
+      const message = toErrorMessage(exception);
+      setError(message);
+      showErrorAlert(message, 'Erro na tarefa');
     }
   }
 
@@ -232,6 +264,11 @@ export function DashboardPage() {
               placeholder="Descrição"
               value={projectForm.description}
               onChange={(event) => setProjectForm((current) => ({ ...current, description: event.target.value }))}
+            />
+            <ProjectWorkersEditor
+              workers={projectForm.workers}
+              users={assignableUsers}
+              onChange={(workers) => setProjectForm((current) => ({ ...current, workers }))}
             />
             <div className="form-actions">
               <button className="primary-action" type="submit">
@@ -283,6 +320,17 @@ export function DashboardPage() {
             </div>
           </div>
 
+          {selectedProject && (
+            <div className="project-team">
+              <span className="field-label">Trabalhando agora</span>
+              <div className="worker-chips">
+                {selectedProject.workers?.length ? selectedProject.workers.map((worker) => (
+                  <span className="worker-chip" key={worker}>{worker}</span>
+                )) : <small>Ninguém informado ainda.</small>}
+              </div>
+            </div>
+          )}
+
           {selectedProject ? (
             <>
               <form className="task-form" onSubmit={handleTaskSubmit}>
@@ -298,40 +346,24 @@ export function DashboardPage() {
                   onChange={(event) => setTaskForm((current) => ({ ...current, description: event.target.value }))}
                 />
                 <div className="form-row">
-                  <select
+                  <SelectField
+                    label="Prioridade"
                     value={taskForm.priority}
-                    onChange={(event) => setTaskForm((current) => ({
-                      ...current,
-                      priority: event.target.value as TaskPriority
-                    }))}
-                  >
-                    <option value="BAIXA">Baixa</option>
-                    <option value="MEDIA">Média</option>
-                    <option value="ALTA">Alta</option>
-                  </select>
-                  <select
+                    options={priorityOptions}
+                    onChange={(priority) => setTaskForm((current) => ({ ...current, priority }))}
+                  />
+                  <SelectField
+                    label="Status"
                     value={taskForm.status}
-                    onChange={(event) => setTaskForm((current) => ({
-                      ...current,
-                      status: event.target.value as TaskStatus
-                    }))}
-                  >
-                    <option value="PENDENTE">Pendente</option>
-                    <option value="EM_ANDAMENTO">Em andamento</option>
-                    <option value="CONCLUIDA">Concluída</option>
-                  </select>
+                    options={statusOptions}
+                    onChange={(status) => setTaskForm((current) => ({ ...current, status }))}
+                  />
                 </div>
                 <div className="form-actions">
                   <button className="primary-action" type="submit">
-                    {editingTaskId ? <Save size={16} /> : <Plus size={16} />}
-                    {editingTaskId ? 'Salvar tarefa' : 'Adicionar tarefa'}
+                    <Plus size={16} />
+                    Adicionar tarefa
                   </button>
-                  {editingTaskId && (
-                    <button className="secondary-action" type="button" onClick={cancelTaskEdit}>
-                      <X size={16} aria-hidden="true" />
-                      Cancelar
-                    </button>
-                  )}
                 </div>
               </form>
 
@@ -352,23 +384,17 @@ export function DashboardPage() {
                   <article className="task-item" key={task.id}>
                     <div>
                       <div className="task-title">
-                        <CheckCircle2 size={18} aria-hidden="true" />
+                        <TaskStatusIcon status={task.status} />
                         <strong>{task.title}</strong>
                       </div>
                       {task.description && <p>{task.description}</p>}
-                      <small>{task.priority} · {formatDate(task.createdAt)}</small>
+                      <div className="task-meta">
+                        <TaskPriorityBadge priority={task.priority} />
+                        <small>{formatDate(task.createdAt)}</small>
+                      </div>
                     </div>
                     <div className="task-controls">
                       <TaskStatusBadge status={task.status} />
-                      <select
-                        value={task.status}
-                        onChange={(event) => handleTaskStatus(task.id, event.target.value as TaskStatus)}
-                        title="Atualizar status"
-                      >
-                        <option value="PENDENTE">Pendente</option>
-                        <option value="EM_ANDAMENTO">Em andamento</option>
-                        <option value="CONCLUIDA">Concluída</option>
-                      </select>
                       <button type="button" onClick={() => startTaskEdit(task)}>Editar</button>
                       <button type="button" onClick={() => handleTaskDelete(task.id)}>Excluir</button>
                     </div>
@@ -381,6 +407,16 @@ export function DashboardPage() {
           )}
         </section>
       </section>
+
+      {editingTask && (
+        <TaskEditModal
+          form={editingTaskForm}
+          isSaving={updateTask.isPending}
+          onChange={setEditingTaskForm}
+          onClose={cancelTaskEdit}
+          onSubmit={handleTaskEditSubmit}
+        />
+      )}
     </main>
   );
 }
