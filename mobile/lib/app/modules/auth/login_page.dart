@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../shared/branding/branding_scope.dart';
 import '../../shared/widgets/error_snack_bar.dart';
 import 'auth_store.dart';
 
@@ -59,6 +60,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final appName = BrandingScope.of(context).appName;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -72,7 +75,7 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Task Manager',
+                    Text(appName,
                         style: Theme.of(context).textTheme.headlineMedium),
                     const SizedBox(height: 24),
                     TextFormField(

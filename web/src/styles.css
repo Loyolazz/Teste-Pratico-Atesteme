@@ -1,15 +1,17 @@
 :root {
   color-scheme: light;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --bg: #f5f7f6;
-  --surface: #ffffff;
-  --surface-soft: #fbfdfc;
-  --text: #17211f;
-  --muted: #64736f;
-  --border: #dce4e1;
-  --accent: #0f766e;
-  --accent-soft: #effaf7;
-  --button-soft: #f8faf9;
+  --bg: #FEF5E2;
+  --surface: #F6E8D5;
+  --surface-soft: #FEDEB8;
+  --text: #3A3026;
+  --muted: #8F7E69;
+  --border: #ECDAC3;
+  --accent: #DFCCB4;
+  --accent-strong: #ECDAC3;
+  --accent-soft: #FEDEB8;
+  --button-soft: #FEDEB8;
+  --on-accent: #3A3026;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -19,15 +21,17 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #101412;
-  --surface: #171d1a;
-  --surface-soft: #1d2421;
-  --text: #edf5f2;
-  --muted: #a6b4af;
-  --border: #33413c;
-  --accent: #2dd4bf;
-  --accent-soft: #102f2b;
-  --button-soft: #202925;
+  --bg: #FEF5E2;
+  --surface: #F6E8D5;
+  --surface-soft: #FEDEB8;
+  --text: #3A3026;
+  --muted: #8F7E69;
+  --border: #ECDAC3;
+  --accent: #DFCCB4;
+  --accent-strong: #ECDAC3;
+  --accent-soft: #FEDEB8;
+  --button-soft: #FEDEB8;
+  --on-accent: #3A3026;
 }
 
 * {
@@ -73,7 +77,7 @@ a {
 .spinner {
   width: 42px;
   height: 42px;
-  border: 4px solid #d7dedb;
+  border: 4px solid var(--border);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -100,7 +104,6 @@ a {
 }
 
 .eyebrow {
-  color: #0f766e;
   color: var(--accent);
   font-size: 0.75rem;
   font-weight: 800;
@@ -167,7 +170,7 @@ input:focus,
 textarea:focus,
 select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 .primary-action,
@@ -187,7 +190,7 @@ select:focus {
 
 .primary-action {
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   padding: 0 16px;
 }
 
@@ -458,18 +461,18 @@ small,
 }
 
 .status-badge.pendente {
-  background: #fff7ed;
-  color: #9a3412;
+  background: var(--surface-soft);
+  color: var(--muted);
 }
 
 .status-badge.em_andamento {
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: var(--accent-soft);
+  color: var(--text);
 }
 
 .status-badge.concluida {
-  background: #ecfdf3;
-  color: #047857;
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .empty-state {

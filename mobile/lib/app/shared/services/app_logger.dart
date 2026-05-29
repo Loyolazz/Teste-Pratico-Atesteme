@@ -1,7 +1,7 @@
 import 'dart:developer' as developer;
 
 class AppLogger {
-  static const _name = 'Atesteme';
+  static const _name = 'TaskManager';
 
   static void info(String message, {Map<String, Object?> context = const {}}) {
     developer.log(_format(message, context), name: _name, level: 800);

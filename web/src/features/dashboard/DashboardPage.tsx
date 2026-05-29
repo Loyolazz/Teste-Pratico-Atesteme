@@ -22,7 +22,7 @@ const initialTaskForm: TaskPayload = {
 
 export function DashboardPage() {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { appName, theme, toggleTheme } = useTheme();
   const { query: projectQuery, createProject, updateProject, deleteProject } = useProjects();
   const projects = projectQuery.data ?? [];
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -195,7 +195,7 @@ export function DashboardPage() {
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <span className="eyebrow">Task Manager</span>
+          <span className="eyebrow">{appName}</span>
           <h1>Olá, {user?.name}</h1>
         </div>
         <div className="topbar-actions">

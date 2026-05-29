@@ -2,12 +2,14 @@ import { FormEvent, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { showErrorAlert } from '../../services/errorAlertService';
 import { toErrorMessage } from '../../utils/formatters';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { login, token } = useAuth();
+  const { appName } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -45,8 +47,8 @@ export function LoginPage() {
     <main className="auth-page">
       <section className="auth-panel" aria-labelledby="login-title">
         <div>
-          <span className="eyebrow">Atesteme</span>
-          <h1 id="login-title">Task Manager</h1>
+          <span className="eyebrow">Área segura</span>
+          <h1 id="login-title">{appName}</h1>
         </div>
 
         <form className="stack" onSubmit={handleSubmit}>

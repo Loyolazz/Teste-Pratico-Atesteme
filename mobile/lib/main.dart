@@ -26,7 +26,7 @@ void main() {
         );
 
         return Material(
-          color: const Color(0xFFFFF1F2),
+          color: const Color(0xFFFEF5E2),
           child: SafeArea(
             child: Center(
               child: Padding(
@@ -35,13 +35,13 @@ void main() {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.error_outline,
-                        color: Color(0xFFB42318), size: 42),
+                        color: Color(0xFFDFCCB4), size: 42),
                     const SizedBox(height: 12),
                     Text(
                       'Não foi possível exibir esta tela.',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        color: Color(0xFF7F1D1D),
+                        color: Color(0xFF3A3026),
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
@@ -50,7 +50,7 @@ void main() {
                     const Text(
                       'Tente voltar e abrir novamente. Se continuar, reinicie o aplicativo.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF7F1D1D)),
+                      style: TextStyle(color: Color(0xFF3A3026)),
                     ),
                   ],
                 ),

@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../shared/branding/branding_scope.dart';
 import '../../shared/widgets/error_snack_bar.dart';
 import 'auth_store.dart';
 
@@ -62,6 +63,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final appName = BrandingScope.of(context).appName;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Criar conta')),
       body: SafeArea(
@@ -75,6 +78,12 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: ListView(
                   shrinkWrap: true,
                   children: [
+                    Text(appName,
+                        style: Theme.of(context).textTheme.headlineMedium),
+                    const SizedBox(height: 8),
+                    Text('Criar conta',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 24),
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(labelText: 'Nome'),

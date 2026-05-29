@@ -234,6 +234,7 @@ DATABASE_PASSWORD=postgres
 JWT_SECRET=change-me-to-a-long-secret-with-at-least-32-bytes
 JWT_EXPIRATION=900000
 JWT_REFRESH_EXPIRATION=604800000
+APP_BRAND_NAME=Task Manager
 ```
 
 Web:
@@ -246,6 +247,77 @@ Mobile:
 
 ```bash
 flutter run --dart-define=API_URL=http://10.0.2.2:8080/api
+```
+
+## Whitelabel e Temas
+
+O backend é a fonte do nome do produto e das cores. Web e mobile chamam `GET /api/branding` ao iniciar e aplicam a mesma identidade visual automaticamente.
+
+Paleta clara padrão:
+
+```txt
+primary      #01B636
+secondary    #3BD16F
+accent       #74E39A
+border       #E3E3E3
+muted        #989898
+```
+
+Paleta escura padrão:
+
+```txt
+primary      #003297
+secondary    #00157F
+accent       #00094B
+background   #0C0C0C
+surface      #1D1D1D
+surfaceSoft  #242424
+```
+
+Se a API estiver fora do ar ou o endpoint de branding falhar, web e mobile usam a paleta bege/creme local:
+
+```txt
+primary      #DFCCB4
+secondary    #ECDAC3
+accent       #FEDEB8
+background   #FEF5E2
+surface      #F6E8D5
+```
+
+Para trocar marca e cores sem alterar front:
+
+```env
+APP_BRAND_NAME=Minha Marca
+
+APP_BRAND_LIGHT_PRIMARY=#01B636
+APP_BRAND_LIGHT_SECONDARY=#3BD16F
+APP_BRAND_LIGHT_ACCENT=#74E39A
+APP_BRAND_LIGHT_BACKGROUND=#F7FBF8
+APP_BRAND_LIGHT_SURFACE=#FFFFFF
+APP_BRAND_LIGHT_SURFACE_SOFT=#F4FFF6
+APP_BRAND_LIGHT_BORDER=#E3E3E3
+APP_BRAND_LIGHT_MUTED=#989898
+APP_BRAND_LIGHT_TEXT=#17211F
+
+APP_BRAND_DARK_PRIMARY=#003297
+APP_BRAND_DARK_SECONDARY=#00157F
+APP_BRAND_DARK_ACCENT=#00094B
+APP_BRAND_DARK_BACKGROUND=#0C0C0C
+APP_BRAND_DARK_SURFACE=#1D1D1D
+APP_BRAND_DARK_SURFACE_SOFT=#242424
+APP_BRAND_DARK_BORDER=#003297
+APP_BRAND_DARK_MUTED=#989898
+APP_BRAND_DARK_TEXT=#E3E3E3
+
+APP_BRAND_FALLBACK_PRIMARY=#DFCCB4
+APP_BRAND_FALLBACK_SECONDARY=#ECDAC3
+APP_BRAND_FALLBACK_ACCENT=#FEDEB8
+APP_BRAND_FALLBACK_BACKGROUND=#FEF5E2
+APP_BRAND_FALLBACK_SURFACE=#F6E8D5
+APP_BRAND_FALLBACK_SURFACE_SOFT=#FEDEB8
+APP_BRAND_FALLBACK_BORDER=#ECDAC3
+APP_BRAND_FALLBACK_MUTED=#8F7E69
+APP_BRAND_FALLBACK_TEXT=#3A3026
 ```
 
 ## CI/CD
@@ -268,6 +340,7 @@ POST   /api/auth/login
 POST   /api/auth/refresh
 POST   /api/auth/logout
 GET    /api/auth/me
+GET    /api/branding
 
 GET    /api/projects
 POST   /api/projects
@@ -306,6 +379,7 @@ A fila offline do web e do mobile compacta mutações antes da sincronização: 
 ## Diferenciais Incluídos
 
 - Swagger/OpenAPI.
+- Whitelabel via backend com tema claro, tema escuro e fallback local quando a API falha.
 - Docker Compose para PostgreSQL, backend e web.
 - H2 em memória para execução rápida.
 - Refresh token rotativo.
